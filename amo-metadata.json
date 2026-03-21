@@ -1,0 +1,8 @@
+{
+  "categories": {
+    "firefox": ["tabs"]
+  },
+  "version": {
+    "license": "MIT"
+  }
+}

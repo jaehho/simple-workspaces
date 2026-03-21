@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Simple Workspaces",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Save and switch between tab workspaces with automatic live-saving. Tabs are unloaded when switching to save RAM.",
   "permissions": [
     "tabs",

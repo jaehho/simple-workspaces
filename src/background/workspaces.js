@@ -103,23 +103,31 @@ export async function saveCurrentWorkspace() {
 
 export async function switchWorkspace(targetId) {
   await setSessionState({ isSwitching: true })
+  let snapshot = null
+  const createdTabIds = []
 
   try {
     const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
     const data = validateWorkspaceData(raw)
     if (!data.workspaces.length) throw new Error('No workspaces found')
 
-    if (targetId === data.activeWorkspaceId) return
+    if (targetId === data.activeWorkspaceId) return { success: true }
 
     const currentTabs = await browser.tabs.query({ currentWindow: true })
 
-    // Save current workspace's tabs
+    // Save current workspace tabs into data (mutates data.workspaces in memory)
     const currentIdx = data.workspaces.findIndex(w => w.id === data.activeWorkspaceId)
     if (currentIdx !== -1) {
       data.workspaces[currentIdx].tabs = serializeTabs(currentTabs)
     }
 
-    // Find target workspace
+    // Snapshot AFTER updating current tabs, BEFORE opening new ones
+    // Deep copy required — data.workspaces was mutated above
+    snapshot = {
+      workspaces: JSON.parse(JSON.stringify(data.workspaces)),
+      activeWorkspaceId: data.activeWorkspaceId,
+    }
+
     const target = data.workspaces.find(w => w.id === targetId)
     if (!target) throw new Error('Target workspace not found')
 
@@ -129,7 +137,6 @@ export async function switchWorkspace(targetId) {
       : [{ url: 'about:newtab', title: 'New Tab', pinned: false }]
 
     // Create new tabs (first one active, rest discarded to save RAM)
-    const createdTabIds = []
     for (let i = 0; i < tabsToCreate.length; i++) {
       const t = tabsToCreate[i]
       const isAbout = !t.url || t.url.startsWith('about:')
@@ -138,10 +145,8 @@ export async function switchWorkspace(targetId) {
         pinned: t.pinned || false,
       }
 
-      // about: URLs can't be set directly, omit url to get default new tab
       if (!isAbout) {
         createProps.url = t.url
-        // Discarded tabs save RAM — only for non-active, non-about tabs
         if (i > 0) {
           createProps.discarded = true
           createProps.title = t.title || t.url
@@ -152,7 +157,6 @@ export async function switchWorkspace(targetId) {
         const created = await browser.tabs.create(createProps)
         createdTabIds.push(created.id)
       } catch (err) {
-        // Fallback: create without discarded if it fails
         console.warn('[Workspaces] Tab create fallback for:', t.url, err)
         try {
           delete createProps.discarded
@@ -165,9 +169,16 @@ export async function switchWorkspace(targetId) {
       }
     }
 
-    // Close old tabs (only after new ones are created)
+    // DATA-01: Atomicity check — all tabs must be created before removing old ones
+    if (createdTabIds.length !== tabsToCreate.length) {
+      // DATA-02: Rollback — close partial tabs, restore snapshot
+      await rollbackSwitch(createdTabIds, snapshot)
+      return { success: false, error: 'Switch aborted: not all tabs could be created' }
+    }
+
+    // All tabs created successfully — safe to remove old ones
     const oldTabIds = currentTabs.map(t => t.id)
-    if (createdTabIds.length > 0 && oldTabIds.length > 0) {
+    if (oldTabIds.length > 0) {
       await browser.tabs.remove(oldTabIds)
     }
 
@@ -184,9 +195,33 @@ export async function switchWorkspace(targetId) {
 
   } catch (e) {
     console.error('[Workspaces] Switch error:', e)
+    // DATA-02: Rollback on unexpected error
+    if (snapshot) await rollbackSwitch(createdTabIds, snapshot)
     return { success: false, error: e.message }
   } finally {
     await setSessionState({ isSwitching: false })
+  }
+}
+
+// ── Rollback (compensation for failed switch) ───────────────
+
+async function rollbackSwitch(createdTabIds, snapshot) {
+  if (createdTabIds.length > 0) {
+    try {
+      await browser.tabs.remove(createdTabIds)
+    } catch (e) {
+      console.warn('[Workspaces] Rollback: tab removal failed:', e)
+    }
+  }
+  if (snapshot) {
+    try {
+      await browser.storage.local.set({
+        workspaces: snapshot.workspaces,
+        activeWorkspaceId: snapshot.activeWorkspaceId,
+      })
+    } catch (e) {
+      console.error('[Workspaces] Rollback: storage restore failed:', e)
+    }
   }
 }
 

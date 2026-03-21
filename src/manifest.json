@@ -1,18 +1,17 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Simple Workspaces",
   "version": "1.0.0",
   "description": "Save and switch between tab workspaces with automatic live-saving. Tabs are unloaded when switching to save RAM.",
   "permissions": [
     "tabs",
-    "storage",
-    "unlimitedStorage"
+    "storage"
   ],
   "background": {
-    "scripts": ["background.js"],
-    "persistent": true
+    "scripts": ["background/index.js"],
+    "type": "module"
   },
-  "browser_action": {
+  "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Simple Workspaces",
     "default_icon": {

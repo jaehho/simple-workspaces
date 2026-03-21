@@ -25,10 +25,10 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Fix data loss on failed switch (snapshot restore on failure) — Validated in Phase 2: data-integrity
 - ✓ Add storage validation and corruption recovery — Validated in Phase 2: data-integrity
 - ✓ Improve ID generation (crypto.randomUUID) — Validated in Phase 2: data-integrity
+- ✓ Multi-window awareness: show which window owns a workspace, switch to or close that window — Validated in Phase 3: multi-window-tracking
 
 ### Active
 
-- [ ] Multi-window awareness: show which window owns a workspace, switch to or close that window
 - [ ] Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota)
 
 ### Out of Scope
@@ -45,7 +45,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js), popup/ (popup.js, popup.html, popup.css)
 - Manifest V3 compliant — AMO publishing unblocked
 - Codebase map exists at `.planning/codebase/`
-- Single global `activeWorkspaceId` causes silent corruption when multiple windows are open
+- Per-window workspace tracking via `windowWorkspaces` session map — each window owns its workspace independently
 - `switchWorkspace()` is now atomic — snapshot rollback restores state on partial tab creation failure
 - Current storage (`browser.storage.local`) survives restarts but not reinstalls
 - `browser.storage.sync` quota is 100KB total — workspace metadata is small enough but needs quota monitoring
@@ -64,7 +64,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 |----------|-----------|---------|
 | Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | — Pending |
 | Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | ✓ Phase 1 |
-| Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | — Pending |
+| Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | ✓ Phase 3 |
 
 ## Evolution
 
@@ -84,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 2 completion*
+*Last updated: 2026-03-21 after Phase 3 completion*

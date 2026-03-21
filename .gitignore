@@ -1,0 +1,12 @@
+node_modules/
+web-ext-artifacts/
+*.zip
+*.xpi
+.web-extension-id
+.DS_Store
+*.log
+package-lock.json
+
+# Source archive (already extracted)
+simple-workspaces-source/
+simple-workspaces-source.zip

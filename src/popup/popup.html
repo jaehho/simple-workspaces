@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Workspaces</h1>
+    <button id="btn-add" class="btn-icon" title="New workspace">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <ul id="workspace-list" class="workspace-list"></ul>
+
+  <!-- Edit modal -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2 id="modal-title">Edit Workspace</h2>
+      <label>
+        <span>Name</span>
+        <input type="text" id="edit-name" maxlength="32" spellcheck="false" autocomplete="off">
+      </label>
+      <div class="color-picker" id="color-picker"></div>
+      <div class="modal-actions">
+        <button id="btn-cancel" class="btn secondary">Cancel</button>
+        <button id="btn-save" class="btn primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+stopped_at: Completed 01-mv3-and-security-01-01-PLAN.md
+last_updated: "2026-03-21T09:17:04.955Z"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +19,17 @@
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 1 — MV3 and Security
+**Current focus:** Phase 01 — mv3-and-security
 
 ## Current Position
 
-Phase: 1 of 4 (MV3 and Security)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-21 — Roadmap created
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (mv3-and-security) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: —
 - Total execution time: —
@@ -30,10 +41,12 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-mv3-and-security P01 | 1 | 1 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -45,6 +58,9 @@ Recent decisions affecting current work:
 - Roadmap: MV3 migration and security hardening first — non-persistent background state model is prerequisite for all subsequent phases
 - Roadmap: DATA-05 (storage.session state) assigned to Phase 1 because MV3 event page forces this; doing it later would require rework
 - Roadmap: Phase 4 (storage.sync) comes last — window-workspace association schema must be finalized before locking in sync data model
+- [Phase 01-mv3-and-security]: D-01/D-04: Throttle with 500ms suppression replaces setTimeout debounce — saves immediately on first tab event, eliminates dropped saves on MV3 background unload
+- [Phase 01-mv3-and-security]: D-02/D-03: isSwitching and lastSaveTime persisted as structured object in storage.session for cross-unload reliability
+- [Phase 01-mv3-and-security]: D-08: background.js split into index.js, state.js, workspaces.js, messaging.js — clean module boundaries for Phases 2-4
 
 ### Pending Todos
 
@@ -57,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21
-Stopped at: Roadmap created — 4 phases defined, all 21 v1 requirements mapped, STATE.md initialized
+Last session: 2026-03-21T09:17:04.953Z
+Stopped at: Completed 01-mv3-and-security-01-01-PLAN.md
 Resume file: None

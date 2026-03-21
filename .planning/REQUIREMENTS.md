@@ -9,11 +9,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Security & Manifest
 
-- [ ] **SEC-01**: Extension uses Manifest V3 (`manifest_version: 3`, `browser.action`, non-persistent background)
+- [x] **SEC-01**: Extension uses Manifest V3 (`manifest_version: 3`, `browser.action`, non-persistent background)
 - [ ] **SEC-02**: Popup uses DOM APIs for SVG icons instead of innerHTML
 - [ ] **SEC-03**: Background script validates message sender origin before processing
 - [ ] **SEC-04**: Workspace color values validated against hex format before CSS injection
-- [ ] **SEC-05**: Extension ID set in `browser_specific_settings.gecko.id` for stable sync identity
+- [x] **SEC-05**: Extension ID set in `browser_specific_settings.gecko.id` for stable sync identity
 
 ### Data Integrity
 
@@ -76,11 +76,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Complete |
 | SEC-02 | Phase 1 | Pending |
 | SEC-03 | Phase 1 | Pending |
 | SEC-04 | Phase 1 | Pending |
-| SEC-05 | Phase 1 | Pending |
+| SEC-05 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |

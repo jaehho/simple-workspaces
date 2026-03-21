@@ -36,21 +36,11 @@ React/Next.js/Vite project. No design system initialization needed.
 
 ## Spacing Scale
 
-The existing popup uses an irregular spacing set. This phase does not change any layout — preserve
-all existing values exactly. The scale below documents what is in use; no changes are required.
+Phase 1 introduces no layout changes. Spacing is not applicable for this phase — all existing
+CSS values are preserved exactly as-is. A spacing normalization is deferred to a future UX
+polish phase.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| xs | 4px | Icon button padding (`.btn-icon`: 4px 6px) |
-| sm | 8px | Workspace item vertical padding, modal actions gap |
-| md | 12px | Header top padding, modal label margin |
-| lg | 14px | Header/workspace item horizontal padding |
-| xl | 16px | Color picker bottom margin, modal input padding-x equivalent |
-| 2xl | 18px | Modal content padding |
-
-**Note:** The existing spacing does not follow a strict 8-point scale. Phase 1 does not touch
-layout. A spacing normalization is deferred to a future UX polish phase. Do not alter any
-spacing values during Phase 1 implementation.
+**Implementation note:** Do not alter any spacing values during Phase 1 implementation.
 
 Exceptions: none for this phase.
 
@@ -65,10 +55,10 @@ Existing type scale — preserve exactly. Phase 1 introduces no typography chang
 | Body | 13px | 400 | browser default (approx 1.4) | Workspace tab count, modal inputs |
 | Label | 11px | 400 | browser default | `.ws-tabs` secondary text, modal field labels (uppercase) |
 | Workspace name | 13px | 500 | browser default | `.ws-name` |
-| Heading | 14px | 600 | browser default | Header h1, modal h2 |
+| Heading | 14px | 500 | browser default | Header h1, modal h2 |
 
-**Source:** popup.css — body font-size 13px, `.ws-tabs` 11px, `.header h1` 14px/600,
-`.btn` 12px/500.
+**Source:** popup.css — body font-size 13px, `.ws-tabs` 11px, `.header h1` 14px,
+`.btn` 12px/500. Two weights in use: 400 (Body, Label) and 500 (Workspace name, Heading).
 
 ---
 

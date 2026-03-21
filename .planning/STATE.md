@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-mv3-and-security-01-02-PLAN.md
-last_updated: "2026-03-21T09:24:42.781Z"
+stopped_at: Completed 02-data-integrity-02-01-PLAN.md
+last_updated: "2026-03-21T09:52:36.437Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 01 — mv3-and-security
+**Current focus:** Phase 02 — data-integrity
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 02 (data-integrity) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: Not started
 *Updated after each plan completion*
 | Phase 01-mv3-and-security P01 | 1 | 1 tasks | 7 files |
 | Phase 01-mv3-and-security P02 | 1 | 3 tasks | 3 files |
+| Phase 02-data-integrity P01 | 2 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,7 @@ Recent decisions affecting current work:
 - [Phase 01-mv3-and-security]: D-09: makeSvgIcon helper via createElementNS — single auditable function, zero XSS risk
 - [Phase 01-mv3-and-security]: D-10/D-11: Silent sender rejection in production; dev-mode via browser.management.getSelf() with no extra permission
 - [Phase 01-mv3-and-security]: D-12: HEX_COLOR_RE /^#[0-9a-fA-F]{6}$/ applied at create/update/badge; COLORS[0].hex fallback
+- [Phase 02-data-integrity]: validateWorkspaceData exported from workspaces.js and wired into every storage.local.get call site; genId() deleted, crypto.randomUUID() used inline
 
 ### Pending Todos
 
@@ -77,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T09:21:34.720Z
-Stopped at: Completed 01-mv3-and-security-01-02-PLAN.md
+Last session: 2026-03-21T09:52:36.436Z
+Stopped at: Completed 02-data-integrity-02-01-PLAN.md
 Resume file: None

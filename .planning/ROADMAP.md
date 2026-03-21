@@ -44,7 +44,7 @@ Plans:
   3. Workspace IDs are UUID format (`crypto.randomUUID()`) — no `Date.now()` or `Math.random()` patterns remain
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — Schema validation on storage reads and crypto.randomUUID replacement
+- [x] 02-01-PLAN.md — Schema validation on storage reads and crypto.randomUUID replacement
 - [ ] 02-02-PLAN.md — Atomic workspace switching with snapshot rollback
 
 ### Phase 3: Multi-Window Tracking

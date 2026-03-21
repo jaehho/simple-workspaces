@@ -26,10 +26,11 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Add storage validation and corruption recovery — Validated in Phase 2: data-integrity
 - ✓ Improve ID generation (crypto.randomUUID) — Validated in Phase 2: data-integrity
 - ✓ Multi-window awareness: show which window owns a workspace, switch to or close that window — Validated in Phase 3: multi-window-tracking
+- ✓ Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota) — Validated in Phase 4: firefox-sync
 
 ### Active
 
-- [ ] Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota)
+(none — all milestone requirements validated)
 
 ### Out of Scope
 
@@ -47,8 +48,9 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Codebase map exists at `.planning/codebase/`
 - Per-window workspace tracking via `windowWorkspaces` session map — each window owns its workspace independently
 - `switchWorkspace()` is now atomic — snapshot rollback restores state on partial tab creation failure
-- Current storage (`browser.storage.local`) survives restarts but not reinstalls
-- `browser.storage.sync` quota is 100KB total — workspace metadata is small enough but needs quota monitoring
+- Storage now uses `browser.storage.sync` as primary with automatic `browser.storage.local` fallback at 90% quota
+- Chunked sync schema: workspace metadata + tab chunks (25 tabs/chunk, favIconUrl stripped to save space)
+- `migrateIfNeeded()` runs on update/startup — existing local data migrated idempotently
 - No automated tests exist
 
 ## Constraints
@@ -62,7 +64,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | — Pending |
+| Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | ✓ Phase 4 |
 | Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | ✓ Phase 1 |
 | Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | ✓ Phase 3 |
 
@@ -84,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 3 completion*
+*Last updated: 2026-03-21 after Phase 4 completion*

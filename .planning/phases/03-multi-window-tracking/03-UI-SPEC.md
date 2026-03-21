@@ -63,11 +63,12 @@ Exceptions:
 | Body | 13px | 400 (regular) | 1.4 | Workspace tab count subtitles, modal input text, general copy |
 | Label | 11px | 400 (regular) | 1.3 | Tab count subtitle (`.ws-tabs`), modal field labels (uppercase, 0.5px letter-spacing), unassigned banner text, "Assign Here" inline action button |
 | Heading | 14px | 600 (semibold) | 1.2 | Popup header "Workspaces" (`.header h1`), modal titles (`.modal-content h2`) |
-| Name | 13px | 500 (medium) | 1.4 | Workspace name (`.ws-name`) — existing codebase value, unchanged |
 
-**Source:** `src/popup/popup.css` lines 13, 28–29, 101–103, 109–110, 178–181.
+**Source:** `src/popup/popup.css` lines 13, 28–29, 109–110, 178–181.
 
-Declared weights: 400 (regular), 500 (medium — existing workspace name only), 600 (semibold — headings only). The 500 weight is inherited from the existing codebase (`src/popup/popup.css` line 101 `.ws-name { font-weight: 500 }`). No new weight values are introduced in this phase. All new elements in this phase use weight 400 or 600 only.
+`ws-name` inherits `font-weight: 500` from existing `popup.css:101` — outside this phase's type scale.
+
+Declared weights for this phase: 400 (body, label, actions) and 600 (headings only). No new weight values are introduced in this phase.
 
 The "Assign Here" inline action button uses weight 400 — it is a `.ws-actions button` element (not a `.btn` element), inheriting from `src/popup/popup.css` line 125 which sets no explicit weight, defaulting to browser 400.
 
@@ -126,12 +127,14 @@ New and modified UI components for this phase. All built via `document.createEle
 - Visual treatment: no dimming, no separate grouping (D-05 is explicit). The only visual change is the presence of the in-use indicator icon
 - Click behavior: fires `focusWindow` message to background, then calls `window.close()` to dismiss popup (D-06)
 - Cursor: `pointer` (unchanged — clicking is the action to focus the other window)
+- Primary visual anchor: the in-use icon at the right of the workspace name is the focal point; it is the only new element distinguishing this state from an available workspace row.
 
 ### 3. Workspace Item — Current Window Active State
 
 - Existing class: `.workspace-item.active` already provides `#2a2a42` background and `var(--ws-color)` left border
 - Phase 3 change: the active indicator is now per-window. The `isActive` check in `renderList()` uses `activeWorkspaceId` returned from `getState` (which is now `windowMap[currentWindowId]` for the popup's window)
 - No new CSS class needed — the existing `.active` class conveys this correctly
+- Primary visual anchor: the colored left border (`var(--ws-color)`) is the dominant focal element for the active row; it anchors the user's eye to their current workspace.
 
 **Source:** CONTEXT.md D-07 (visual treatment like background or border, not just text); existing `.workspace-item.active` CSS.
 
@@ -141,10 +144,11 @@ New and modified UI components for this phase. All built via `document.createEle
 - Content: icon (open window glyph, 14px) + text "No workspace assigned"
 - Background: `#252536`
 - Text color: `#6c7086` (muted)
-- Font: 12px, weight 400
+- Font: 11px, weight 400 (Label role — matches `.ws-tabs` and other label-tier elements)
 - Padding: 8px 14px — matches existing `.workspace-item { padding: 8px 14px }` (`src/popup/popup.css` line 62), preserving visual alignment of banner text with list item text
 - Border-bottom: `1px solid #2e2e3e` (matches header border)
 - Visibility: only rendered when popup window is unassigned (D-08)
+- Primary visual anchor: the banner strip itself is the dominant focal point in the unassigned state; its distinct background color draws the eye before the workspace list, establishing the "no workspace" context immediately.
 
 **Source:** CONTEXT.md D-09 (unassigned window shows full list + create + move options).
 
@@ -213,13 +217,13 @@ New and modified UI components for this phase. All built via `document.createEle
 
 ## States Reference
 
-| State | Trigger | Visual |
-|-------|---------|--------|
-| Active (this window) | `windowMap[currentWindowId] === ws.id` | `#2a2a42` bg + `var(--ws-color)` left border + tab count shows "· active" |
-| In-use (other window) | `windowMap[otherWindowId] === ws.id` and `otherWindowId !== currentWindowId` | No dim, no bg change, in-use icon (`#6c7086`) visible at right of name |
-| Available | Not in any window's map entry | Default list row, no indicator |
-| Unassigned window | `windowMap[currentWindowId]` is null or absent | Banner shows above list; "Assign Here" buttons visible on all available workspace rows |
-| Switching in progress | `isSwitching: true` | All list items `opacity: 0.5` (existing pattern) |
+| State | Trigger | Visual | Primary Anchor |
+|-------|---------|--------|----------------|
+| Active (this window) | `windowMap[currentWindowId] === ws.id` | `#2a2a42` bg + `var(--ws-color)` left border + tab count shows "· active" | The colored left border anchors the eye to the user's current workspace. |
+| In-use (other window) | `windowMap[otherWindowId] === ws.id` and `otherWindowId !== currentWindowId` | No dim, no bg change, in-use icon (`#6c7086`) visible at right of name | The in-use icon is the sole focal indicator; all other row elements remain at default weight. |
+| Available | Not in any window's map entry | Default list row, no indicator | No focal accent — the row is intentionally neutral to recede behind active and in-use rows. |
+| Unassigned window | `windowMap[currentWindowId]` is null or absent | Banner shows above list; "Assign Here" buttons visible on all available workspace rows | The banner strip is the primary anchor; it occupies the top position and uses a distinct background, establishing context before the list is scanned. |
+| Switching in progress | `isSwitching: true` | All list items `opacity: 0.5` (existing pattern) | The dimmed list signals unavailability; no single row anchors focus during transition. |
 
 ---
 

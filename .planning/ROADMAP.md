@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Background script rejects messages from non-extension origins (sender URL not `moz-extension://`)
   4. Workspace color values that are not valid hex format are rejected before any CSS is applied
   5. In-memory switch lock and debounce state persists correctly across background page unloads via `storage.session`
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — MV3 manifest migration and background ES module split
+- [ ] 01-02-PLAN.md — Security hardening (sender validation, color validation, SVG DOM) and verification
 
 ### Phase 2: Data Integrity
 **Goal**: Workspace switching never loses tabs — atomic create-then-delete with rollback on failure and schema validation on every storage read
@@ -70,7 +73,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MV3 and Security | 0/TBD | Not started | - |
+| 1. MV3 and Security | 0/2 | Planning complete | - |
 | 2. Data Integrity | 0/TBD | Not started | - |
 | 3. Multi-Window Tracking | 0/TBD | Not started | - |
 | 4. Firefox Sync | 0/TBD | Not started | - |

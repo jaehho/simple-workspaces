@@ -63,7 +63,7 @@ completed: 2026-03-21
 - **Duration:** 2 min
 - **Started:** 2026-03-21T11:03:13Z
 - **Completed:** 2026-03-21T11:05:15Z
-- **Tasks:** 1 of 2 (1 code, 1 human-verify checkpoint)
+- **Tasks:** 2 of 2 (1 code, 1 human-verify checkpoint — approved)
 - **Files modified:** 2
 
 ## Accomplishments
@@ -80,6 +80,7 @@ completed: 2026-03-21
 ## Task Commits
 
 1. **Task 1: Make popup.js window-aware with in-use indicators, unassigned banner, and assign action** - `a952d8e` (feat)
+2. **Task 2: Verify multi-window tracking end-to-end** - Human verification approved
 
 ## Files Created/Modified
 
@@ -100,9 +101,22 @@ None — plan executed exactly as written. All 14 popup.js changes and 4 CSS add
 
 None — all data flows are wired. `windowMap` comes from the background's `getState` response (implemented in Plan 01). `focusWindow` and `assignWorkspace` message actions are handled in `messaging.js` (implemented in Plan 01). No hardcoded values, no placeholder data.
 
-## Checkpoint Required
+## Human Verification Outcome
 
-Task 2 is a `checkpoint:human-verify` gate requiring end-to-end testing in Firefox with multiple windows. The human tester must verify all 8 multi-window scenarios (per-window badge, workspace isolation, in-use indicator, focus window, unassigned window, exclusive ownership, window close releases workspace, browser restart reclaim).
+Task 2 checkpoint approved. End-to-end testing conducted in Firefox. Key scenarios verified:
+
+- Per-window badge, workspace isolation, in-use indicator, unassigned window banner, Assign Here buttons, exclusive ownership (click-to-focus), and window close releases workspace — all confirmed working.
+
+**Environmental limitations noted (not extension bugs):**
+- Focus window test (WIN-03) could not be fully verified due to Hyprland (Wayland tiling WM) handling focus events differently than standard desktop focus — the extension's `focusWindow` message and `windows.update({ focused: true })` call are correct per the WebExtensions API; focus behavior is window manager-dependent.
+- Browser restart reclaim (D-10) was untestable with `web-ext run` — closing all Firefox windows in this mode terminates the extension process, so the restart scenario cannot be exercised in the development workflow.
+- Edit/create workspace modals appearing too small is a pre-existing UI issue unrelated to Phase 3 changes.
+
+## Self-Check: PASSED
+
+- `a952d8e` exists in git log
+- `src/popup/popup.js` contains `currentWindowId`, `windowMap`, `ws-unassigned-banner`, `onFocusWindow`, `onAssign`
+- `src/popup/popup.css` contains `.ws-unassigned-banner`, `.ws-in-use-icon`, `.ws-actions button.assign`
 
 ---
 *Phase: 03-multi-window-tracking*

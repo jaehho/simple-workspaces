@@ -11,7 +11,7 @@
     "lint": "web-ext lint --source-dir src",
     "lint:eslint": "eslint src/",
     "lint:all": "npm run lint && npm run lint:eslint",
-    "sign": "web-ext sign --source-dir src"
+    "sign": "export $(cat .env | xargs) && web-ext sign --source-dir src"
   },
   "devDependencies": {
     "addons-linter": "^7.0.0",

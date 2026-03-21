@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: MV3 and Security** - Migrate to Manifest V3 and eliminate all AMO security review blockers (completed 2026-03-21)
 - [x] **Phase 2: Data Integrity** - Make workspace switching atomic with rollback and storage validation (completed 2026-03-21)
-- [ ] **Phase 3: Multi-Window Tracking** - Each browser window independently tracks its own active workspace
+- [x] **Phase 3: Multi-Window Tracking** - Each browser window independently tracks its own active workspace (completed 2026-03-21)
 - [ ] **Phase 4: Firefox Sync** - Migrate primary storage to browser.storage.sync with quota-safe fallback
 
 ## Phase Details
@@ -56,10 +56,10 @@ Plans:
   2. Popup shows which workspaces are active in other open windows
   3. User can click a workspace owned by another window to switch focus to that window
   4. Each window's toolbar badge shows its own active workspace initial independently
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 03-01-PLAN.md — Background multi-window infrastructure (window map, windowId-aware functions, event listeners, reclaim)
-- [ ] 03-02-PLAN.md — Popup multi-window UI (in-use indicators, unassigned banner, assign action, focus window)
+- [x] 03-02-PLAN.md — Popup multi-window UI (in-use indicators, unassigned banner, assign action, focus window)
 
 ### Phase 4: Firefox Sync
 **Goal**: Workspaces survive reinstalls and sync across devices via Firefox account, with graceful fallback when sync quota is exceeded
@@ -81,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
 | 2. Data Integrity | 2/2 | Complete   | 2026-03-21 |
-| 3. Multi-Window Tracking | 1/2 | In Progress|  |
+| 3. Multi-Window Tracking | 2/2 | Complete   | 2026-03-21 |
 | 4. Firefox Sync | 0/TBD | Not started | - |

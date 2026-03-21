@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-multi-window-tracking 03-01-PLAN.md
-last_updated: "2026-03-21T11:02:06.409Z"
+stopped_at: "Completed 03-multi-window-tracking 03-02-PLAN.md (checkpoint:human-verify pending)"
+last_updated: "2026-03-21T11:06:33.601Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -51,6 +51,7 @@ Plan: 2 of 2
 | Phase 02-data-integrity P01 | 2 | 1 tasks | 2 files |
 | Phase 02-data-integrity P02 | 1 | 1 tasks | 1 files |
 | Phase 03-multi-window-tracking P01 | 4 | 2 tasks | 4 files |
+| Phase 03-multi-window-tracking P02 | 2min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase 03-multi-window-tracking]: throttledSave uses single global lastSaveTime throttle — per-window throttle deferred as acceptable collision risk at 500ms
 - [Phase 03-multi-window-tracking]: windows.onFocusChanged triggers badge refresh only, no save — tab events already handle saves
 - [Phase 03-multi-window-tracking]: initDefaultWorkspace always requires explicit windowId — index.js uses windows.getCurrent() for onInstalled/onStartup
+- [Phase 03-multi-window-tracking]: currentWindowId acquired via browser.tabs.query in popup context — correct because currentWindow: true refers to popup's window
+- [Phase 03-multi-window-tracking]: onFocusWindow closes popup immediately after sending message — non-destructive, correct UX
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T11:02:06.408Z
-Stopped at: Completed 03-multi-window-tracking 03-01-PLAN.md
+Last session: 2026-03-21T11:06:33.600Z
+Stopped at: Completed 03-multi-window-tracking 03-02-PLAN.md (checkpoint:human-verify pending)
 Resume file: None

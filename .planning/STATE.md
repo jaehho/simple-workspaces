@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-mv3-and-security-01-01-PLAN.md
-last_updated: "2026-03-21T09:17:04.955Z"
+stopped_at: Completed 01-mv3-and-security-01-02-PLAN.md
+last_updated: "2026-03-21T09:21:34.722Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 01-mv3-and-security P01 | 1 | 1 tasks | 7 files |
+| Phase 01-mv3-and-security P02 | 1 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,9 @@ Recent decisions affecting current work:
 - [Phase 01-mv3-and-security]: D-01/D-04: Throttle with 500ms suppression replaces setTimeout debounce — saves immediately on first tab event, eliminates dropped saves on MV3 background unload
 - [Phase 01-mv3-and-security]: D-02/D-03: isSwitching and lastSaveTime persisted as structured object in storage.session for cross-unload reliability
 - [Phase 01-mv3-and-security]: D-08: background.js split into index.js, state.js, workspaces.js, messaging.js — clean module boundaries for Phases 2-4
+- [Phase 01-mv3-and-security]: D-09: makeSvgIcon helper via createElementNS — single auditable function, zero XSS risk
+- [Phase 01-mv3-and-security]: D-10/D-11: Silent sender rejection in production; dev-mode via browser.management.getSelf() with no extra permission
+- [Phase 01-mv3-and-security]: D-12: HEX_COLOR_RE /^#[0-9a-fA-F]{6}$/ applied at create/update/badge; COLORS[0].hex fallback
 
 ### Pending Todos
 
@@ -73,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T09:17:04.953Z
-Stopped at: Completed 01-mv3-and-security-01-01-PLAN.md
+Last session: 2026-03-21T09:21:34.720Z
+Stopped at: Completed 01-mv3-and-security-01-02-PLAN.md
 Resume file: None

@@ -10,9 +10,9 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Security & Manifest
 
 - [x] **SEC-01**: Extension uses Manifest V3 (`manifest_version: 3`, `browser.action`, non-persistent background)
-- [ ] **SEC-02**: Popup uses DOM APIs for SVG icons instead of innerHTML
-- [ ] **SEC-03**: Background script validates message sender origin before processing
-- [ ] **SEC-04**: Workspace color values validated against hex format before CSS injection
+- [x] **SEC-02**: Popup uses DOM APIs for SVG icons instead of innerHTML
+- [x] **SEC-03**: Background script validates message sender origin before processing
+- [x] **SEC-04**: Workspace color values validated against hex format before CSS injection
 - [x] **SEC-05**: Extension ID set in `browser_specific_settings.gecko.id` for stable sync identity
 
 ### Data Integrity
@@ -21,7 +21,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **DATA-02**: Failed switch rolls back: pre-switch snapshot restored, no data loss
 - [ ] **DATA-03**: Storage reads validated against schema; corrupted data triggers recovery to safe default
 - [ ] **DATA-04**: ID generation uses `crypto.randomUUID()` instead of `Date.now()` + `Math.random()`
-- [ ] **DATA-05**: In-memory state (`isSwitching`, debounce timers) moved to `storage.session` for MV3 non-persistent background compatibility
+- [x] **DATA-05**: In-memory state (`isSwitching`, debounce timers) moved to `storage.session` for MV3 non-persistent background compatibility
 
 ### Multi-Window
 
@@ -77,15 +77,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SEC-01 | Phase 1 | Complete |
-| SEC-02 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
-| SEC-04 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
+| SEC-04 | Phase 1 | Complete |
 | SEC-05 | Phase 1 | Complete |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
 | DATA-03 | Phase 2 | Pending |
 | DATA-04 | Phase 2 | Pending |
-| DATA-05 | Phase 1 | Pending |
+| DATA-05 | Phase 1 | Complete |
 | WIN-01 | Phase 3 | Pending |
 | WIN-02 | Phase 3 | Pending |
 | WIN-03 | Phase 3 | Pending |

@@ -12,7 +12,7 @@ This milestone hardens an existing Firefox extension for AMO publishing. The cor
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: MV3 and Security** - Migrate to Manifest V3 and eliminate all AMO security review blockers
+- [x] **Phase 1: MV3 and Security** - Migrate to Manifest V3 and eliminate all AMO security review blockers (completed 2026-03-21)
 - [ ] **Phase 2: Data Integrity** - Make workspace switching atomic with rollback and storage validation
 - [ ] **Phase 3: Multi-Window Tracking** - Each browser window independently tracks its own active workspace
 - [ ] **Phase 4: Firefox Sync** - Migrate primary storage to browser.storage.sync with quota-safe fallback
@@ -29,10 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Background script rejects messages from non-extension origins (sender URL not `moz-extension://`)
   4. Workspace color values that are not valid hex format are rejected before any CSS is applied
   5. In-memory switch lock and debounce state persists correctly across background page unloads via `storage.session`
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 01-01-PLAN.md — MV3 manifest migration and background ES module split
-- [ ] 01-02-PLAN.md — Security hardening (sender validation, color validation, SVG DOM) and verification
+- [x] 01-02-PLAN.md — Security hardening (sender validation, color validation, SVG DOM) and verification
 
 ### Phase 2: Data Integrity
 **Goal**: Workspace switching never loses tabs — atomic create-then-delete with rollback on failure and schema validation on every storage read
@@ -73,7 +73,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MV3 and Security | 1/2 | In Progress|  |
+| 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
 | 2. Data Integrity | 0/TBD | Not started | - |
 | 3. Multi-Window Tracking | 0/TBD | Not started | - |
 | 4. Firefox Sync | 0/TBD | Not started | - |

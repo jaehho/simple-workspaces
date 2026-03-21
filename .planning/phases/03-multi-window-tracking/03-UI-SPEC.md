@@ -52,7 +52,7 @@ Exceptions:
 - Workspace item left border (active indicator): 3px width, inset 4px top/bottom — stays as-is (not a spacing token)
 - Color swatch size: 26px × 26px — component-specific, not a layout spacing token
 - In-use indicator icon: 14px × 14px — matches existing `makeSvgIcon` dimensions (width="14" height="14")
-- Unassigned banner: 8px vertical padding, 14px horizontal padding — matches existing item rhythm
+- Unassigned banner horizontal padding: 14px — matches existing `.workspace-item { padding: 8px 14px }` from `src/popup/popup.css` line 62, preserves visual alignment of banner text with list item text
 
 ---
 
@@ -61,15 +61,15 @@ Exceptions:
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 13px | 400 (regular) | 1.4 | Workspace tab count subtitles, modal input text, general copy |
-| Label | 11px | 400 (regular) | 1.3 | Tab count subtitle (`.ws-tabs`), modal field labels (uppercase, 0.5px letter-spacing) |
+| Label | 11px | 400 (regular) | 1.3 | Tab count subtitle (`.ws-tabs`), modal field labels (uppercase, 0.5px letter-spacing), unassigned banner text, "Assign Here" inline action button |
 | Heading | 14px | 600 (semibold) | 1.2 | Popup header "Workspaces" (`.header h1`), modal titles (`.modal-content h2`) |
-| Name | 13px | 500 (medium) | 1.4 | Workspace name (`.ws-name`) |
+| Name | 13px | 500 (medium) | 1.4 | Workspace name (`.ws-name`) — existing codebase value, unchanged |
 
 **Source:** `src/popup/popup.css` lines 13, 28–29, 101–103, 109–110, 178–181.
 
-Two weights in the established system: 500 (workspace names) and 600 (headings). Body copy uses browser default 400. The Name role uses 500 (medium) — not an additional weight, it is already present in the codebase.
+Declared weights: 400 (regular), 500 (medium — existing workspace name only), 600 (semibold — headings only). The 500 weight is inherited from the existing codebase (`src/popup/popup.css` line 101 `.ws-name { font-weight: 500 }`). No new weight values are introduced in this phase. All new elements in this phase use weight 400 or 600 only.
 
-Declared weights for new elements in this phase: 400 (regular) and 600 (semibold) only. The "in-use" indicator label and unassigned window banner must use these two weights — do not introduce 700.
+The "Assign Here" inline action button uses weight 400 — it is a `.ws-actions button` element (not a `.btn` element), inheriting from `src/popup/popup.css` line 125 which sets no explicit weight, defaulting to browser 400.
 
 ---
 
@@ -87,7 +87,7 @@ Declared weights for new elements in this phase: 400 (regular) and 600 (semibold
 Accent (`#89b4fa`) reserved for:
 1. Primary modal action button background (`.btn.primary`)
 2. Text input focus border in modals
-3. The "Assign here" inline action button text color in unassigned window state (new in Phase 3)
+3. The "Assign Here" inline action button text color in unassigned window state (new in Phase 3)
 
 The accent is NOT used for workspace list item hover, icon hover states, or the in-use indicator icon. Those use `#cdd6f4` (text highlight) or `#6c7086` (muted).
 
@@ -142,7 +142,7 @@ New and modified UI components for this phase. All built via `document.createEle
 - Background: `#252536`
 - Text color: `#6c7086` (muted)
 - Font: 12px, weight 400
-- Padding: 8px 14px (matches workspace item horizontal padding)
+- Padding: 8px 14px — matches existing `.workspace-item { padding: 8px 14px }` (`src/popup/popup.css` line 62), preserving visual alignment of banner text with list item text
 - Border-bottom: `1px solid #2e2e3e` (matches header border)
 - Visibility: only rendered when popup window is unassigned (D-08)
 
@@ -151,8 +151,8 @@ New and modified UI components for this phase. All built via `document.createEle
 ### 5. "Assign Here" Inline Action (new)
 
 - Element: additional button in `.ws-actions` area for each workspace row, visible only when the current window is unassigned
-- Label: "Assign" (text button, not icon-only — action is not familiar enough to be icon-only)
-- Font: 11px, weight 500
+- Label: "Assign Here" (text button, not icon-only — action is not familiar enough to be icon-only)
+- Font: 11px, weight 400 (`.ws-actions button` base — no explicit weight set in `src/popup/popup.css` line 125, inherits browser default 400)
 - Color at rest: `#89b4fa` (accent — this IS an assignable action, the primary interaction for unassigned windows)
 - Background: none (matches `.ws-actions button` base style)
 - Hover: `background: #2e2e4e`, color `#cdd6f4`
@@ -193,11 +193,11 @@ New and modified UI components for this phase. All built via `document.createEle
 
 ### Assigning a workspace to an unassigned window (new)
 
-1. User clicks "Assign" inline button on a workspace row
+1. User clicks "Assign Here" inline button on a workspace row
 2. Popup sends `{ action: 'assignWorkspace', workspaceId, windowId: currentWindowId }`
 3. Background saves current window tabs into that workspace, sets `windowMap[windowId] = workspaceId`
 4. Popup re-renders — unassigned banner disappears, workspace shows as active
-5. No confirmation dialog — "Assign" is clearly labeled and reversible
+5. No confirmation dialog — "Assign Here" is clearly labeled and reversible
 
 ### Clicking the current window's active workspace
 
@@ -218,7 +218,7 @@ New and modified UI components for this phase. All built via `document.createEle
 | Active (this window) | `windowMap[currentWindowId] === ws.id` | `#2a2a42` bg + `var(--ws-color)` left border + tab count shows "· active" |
 | In-use (other window) | `windowMap[otherWindowId] === ws.id` and `otherWindowId !== currentWindowId` | No dim, no bg change, in-use icon (`#6c7086`) visible at right of name |
 | Available | Not in any window's map entry | Default list row, no indicator |
-| Unassigned window | `windowMap[currentWindowId]` is null or absent | Banner shows above list; "Assign" buttons visible on all available workspace rows |
+| Unassigned window | `windowMap[currentWindowId]` is null or absent | Banner shows above list; "Assign Here" buttons visible on all available workspace rows |
 | Switching in progress | `isSwitching: true` | All list items `opacity: 0.5` (existing pattern) |
 
 ---
@@ -227,7 +227,7 @@ New and modified UI components for this phase. All built via `document.createEle
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (assign) | "Assign" |
+| Primary CTA (assign) | "Assign Here" |
 | Primary CTA (switch) | "Switch Workspace" (existing, no label visible — click-to-switch) |
 | In-use tooltip | "Active in another window" |
 | Unassigned banner heading | "No workspace assigned" |

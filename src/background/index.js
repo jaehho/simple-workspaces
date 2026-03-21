@@ -3,8 +3,9 @@
 // Firefox event pages only wake for events with top-level listeners.
 
 import { throttledSave, removeWindowEntry, getWindowMap } from './state.js'
-import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, validateWorkspaceData, reclaimWorkspaces } from './workspaces.js'
+import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces } from './workspaces.js'
 import { handleMessage } from './messaging.js'
+import { migrateIfNeeded, getWorkspaces } from './sync.js'
 
 // ── Tab Event Listeners (live-save via throttle) ────────────
 browser.tabs.onCreated.addListener((tab) => throttledSave(tab.windowId))
@@ -30,8 +31,7 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
   const windowMap = await getWindowMap()
   const workspaceId = windowMap[String(windowId)]
   if (workspaceId) {
-    const raw = await browser.storage.local.get(['workspaces'])
-    const { workspaces } = validateWorkspaceData(raw)
+    const workspaces = await getWorkspaces()
     const ws = workspaces.find(w => w.id === workspaceId)
     if (ws) updateBadge(ws, windowId)
   } else {
@@ -48,12 +48,15 @@ browser.runtime.onInstalled.addListener(async (details) => {
     const win = await browser.windows.getCurrent()
     await initDefaultWorkspace(win.id)
   }
+  if (details.reason === 'update') {
+    await migrateIfNeeded()
+  }
 })
 
 browser.runtime.onStartup.addListener(async () => {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const data = validateWorkspaceData(raw)
-  if (!data.workspaces.length) {
+  await migrateIfNeeded()
+  const workspaces = await getWorkspaces()
+  if (!workspaces.length) {
     const win = await browser.windows.getCurrent()
     await initDefaultWorkspace(win.id)
   } else {
@@ -71,15 +74,14 @@ browser.runtime.onSuspend.addListener(async () => {
 
 // ── Badge init (async, after listeners) ─────────────────────
 ;(async () => {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const data = validateWorkspaceData(raw)
-  if (!data.workspaces.length) return
+  const workspaces = await getWorkspaces()
+  if (!workspaces.length) return
   const windowMap = await getWindowMap()
   const wins = await browser.windows.getAll()
   for (const win of wins) {
     const wsId = windowMap[String(win.id)]
     if (wsId) {
-      const ws = data.workspaces.find(w => w.id === wsId)
+      const ws = workspaces.find(w => w.id === wsId)
       if (ws) updateBadge(ws, win.id)
     } else {
       updateBadge(null, win.id)

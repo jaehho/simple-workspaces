@@ -1,7 +1,8 @@
 // ── Message Router ──────────────────────────────────────────
 
-import { switchWorkspace, createWorkspace, deleteWorkspace, updateWorkspace, saveCurrentWorkspace, assignWorkspace, COLORS, validateWorkspaceData } from './workspaces.js'
+import { switchWorkspace, createWorkspace, deleteWorkspace, updateWorkspace, saveCurrentWorkspace, assignWorkspace, COLORS } from './workspaces.js'
 import { getWindowMap } from './state.js'
+import { getWorkspaces } from './sync.js'
 
 // Dev-mode detection — cached at startup (per D-11)
 let isDevMode = false
@@ -21,8 +22,7 @@ export function handleMessage(msg, sender) {
   switch (msg.action) {
     case 'getState': {
       return (async () => {
-        const raw = await browser.storage.local.get(['workspaces'])
-        const { workspaces } = validateWorkspaceData(raw)
+        const workspaces = await getWorkspaces()
         const windowMap = await getWindowMap()
         return {
           workspaces,

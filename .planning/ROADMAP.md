@@ -70,7 +70,10 @@ Plans:
   2. A workspace with 40 tabs saves and loads correctly without quota errors
   3. When sync quota is exceeded, the extension silently falls back to `storage.local` without data loss
   4. Existing workspaces from `storage.local` are automatically migrated to `storage.sync` on first run after update
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — Create sync.js storage abstraction module (sync/local/migration/chunking)
+- [ ] 04-02-PLAN.md — Wire sync.js into all modules, replace storage.local calls, add migration hooks
 
 ## Progress
 
@@ -82,4 +85,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
 | 2. Data Integrity | 2/2 | Complete   | 2026-03-21 |
 | 3. Multi-Window Tracking | 2/2 | Complete   | 2026-03-21 |
-| 4. Firefox Sync | 0/TBD | Not started | - |
+| 4. Firefox Sync | 0/2 | Not started | - |

@@ -42,7 +42,10 @@ Plans:
   1. If a tab creation fails mid-switch, all partially-created tabs are closed and the original workspace tabs remain open
   2. Workspace data that fails schema validation on read triggers automatic recovery to a safe default state rather than a crash or silent corruption
   3. Workspace IDs are UUID format (`crypto.randomUUID()`) — no `Date.now()` or `Math.random()` patterns remain
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Schema validation on storage reads and crypto.randomUUID replacement
+- [ ] 02-02-PLAN.md — Atomic workspace switching with snapshot rollback
 
 ### Phase 3: Multi-Window Tracking
 **Goal**: Each browser window independently tracks its own active workspace — no cross-window corruption possible
@@ -74,6 +77,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
-| 2. Data Integrity | 0/TBD | Not started | - |
+| 2. Data Integrity | 0/2 | Not started | - |
 | 3. Multi-Window Tracking | 0/TBD | Not started | - |
 | 4. Firefox Sync | 0/TBD | Not started | - |

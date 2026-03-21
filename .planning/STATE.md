@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-data-integrity-02-02-PLAN.md
-last_updated: "2026-03-21T09:58:36.168Z"
+stopped_at: Completed 03-multi-window-tracking 03-01-PLAN.md
+last_updated: "2026-03-21T11:02:06.409Z"
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 02 — data-integrity
+**Current focus:** Phase 03 — multi-window-tracking
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (multi-window-tracking) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: Not started
 | Phase 01-mv3-and-security P02 | 1 | 3 tasks | 3 files |
 | Phase 02-data-integrity P01 | 2 | 1 tasks | 2 files |
 | Phase 02-data-integrity P02 | 1 | 1 tasks | 1 files |
+| Phase 03-multi-window-tracking P01 | 4 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [Phase 01-mv3-and-security]: D-12: HEX_COLOR_RE /^#[0-9a-fA-F]{6}$/ applied at create/update/badge; COLORS[0].hex fallback
 - [Phase 02-data-integrity]: validateWorkspaceData exported from workspaces.js and wired into every storage.local.get call site; genId() deleted, crypto.randomUUID() used inline
 - [Phase 02-data-integrity]: rollbackSwitch is private (not exported); snapshot taken after saving current tabs but before tabs.create loop; rollback never in finally block (only in failure path and catch)
+- [Phase 03-multi-window-tracking]: throttledSave uses single global lastSaveTime throttle — per-window throttle deferred as acceptable collision risk at 500ms
+- [Phase 03-multi-window-tracking]: windows.onFocusChanged triggers badge refresh only, no save — tab events already handle saves
+- [Phase 03-multi-window-tracking]: initDefaultWorkspace always requires explicit windowId — index.js uses windows.getCurrent() for onInstalled/onStartup
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T09:55:49.684Z
-Stopped at: Completed 02-data-integrity-02-02-PLAN.md
+Last session: 2026-03-21T11:02:06.408Z
+Stopped at: Completed 03-multi-window-tracking 03-01-PLAN.md
 Resume file: None

@@ -25,12 +25,12 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Multi-Window
 
-- [ ] **WIN-01**: Each window tracks its own active workspace independently via `windowId → workspaceId` mapping
+- [x] **WIN-01**: Each window tracks its own active workspace independently via `windowId → workspaceId` mapping
 - [ ] **WIN-02**: Popup shows which workspaces are active in other windows
 - [ ] **WIN-03**: User can switch to the window that owns a workspace (or close it) from the popup
-- [ ] **WIN-04**: Tab queries use explicit `windowId` from event context instead of `currentWindow: true`
-- [ ] **WIN-05**: `windows.onFocusChanged` handler filters out `WINDOW_ID_NONE` events
-- [ ] **WIN-06**: Per-window badge text shows each window's active workspace initial
+- [x] **WIN-04**: Tab queries use explicit `windowId` from event context instead of `currentWindow: true`
+- [x] **WIN-05**: `windows.onFocusChanged` handler filters out `WINDOW_ID_NONE` events
+- [x] **WIN-06**: Per-window badge text shows each window's active workspace initial
 
 ### Storage Sync
 
@@ -86,12 +86,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-03 | Phase 2 | Complete |
 | DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 1 | Complete |
-| WIN-01 | Phase 3 | Pending |
+| WIN-01 | Phase 3 | Complete |
 | WIN-02 | Phase 3 | Pending |
 | WIN-03 | Phase 3 | Pending |
-| WIN-04 | Phase 3 | Pending |
-| WIN-05 | Phase 3 | Pending |
-| WIN-06 | Phase 3 | Pending |
+| WIN-04 | Phase 3 | Complete |
+| WIN-05 | Phase 3 | Complete |
+| WIN-06 | Phase 3 | Complete |
 | SYNC-01 | Phase 4 | Pending |
 | SYNC-02 | Phase 4 | Pending |
 | SYNC-03 | Phase 4 | Pending |

@@ -56,9 +56,9 @@ Plans:
   2. Popup shows which workspaces are active in other open windows
   3. User can click a workspace owned by another window to switch focus to that window
   4. Each window's toolbar badge shows its own active workspace initial independently
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 03-01-PLAN.md — Background multi-window infrastructure (window map, windowId-aware functions, event listeners, reclaim)
+- [x] 03-01-PLAN.md — Background multi-window infrastructure (window map, windowId-aware functions, event listeners, reclaim)
 - [ ] 03-02-PLAN.md — Popup multi-window UI (in-use indicators, unassigned banner, assign action, focus window)
 
 ### Phase 4: Firefox Sync
@@ -81,5 +81,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
 | 2. Data Integrity | 2/2 | Complete   | 2026-03-21 |
-| 3. Multi-Window Tracking | 0/2 | In progress | - |
+| 3. Multi-Window Tracking | 1/2 | In Progress|  |
 | 4. Firefox Sync | 0/TBD | Not started | - |

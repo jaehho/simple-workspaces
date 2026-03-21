@@ -245,6 +245,7 @@ async function onDelete(workspaceId, name, totalCount) {
 // ── Modal ────────────────────────────────────────────────────
 
 function openEditModal(workspace) {
+  document.body.classList.add('modal-open');
   editingId = workspace.id;
   selectedColor = workspace.color;
 
@@ -257,6 +258,7 @@ function openEditModal(workspace) {
 }
 
 function openCreateModal(defaultColor) {
+  document.body.classList.add('modal-open');
   editingId = null;
   selectedColor = defaultColor.hex;
 
@@ -270,6 +272,7 @@ function openCreateModal(defaultColor) {
 
 function closeModal() {
   document.getElementById('edit-modal').classList.add('hidden');
+  document.body.classList.remove('modal-open');
   editingId = null;
 }
 

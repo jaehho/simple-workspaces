@@ -40,7 +40,7 @@ async function renderList() {
     li.className = 'workspace-item' + (isActive ? ' active' : '');
     li.style.setProperty('--ws-color', ws.color);
 
-    // Build DOM safely (no dynamic innerHTML)
+    // Build DOM safely via createElement (no XSS risk)
     const dot = document.createElement('div');
     dot.className = 'ws-dot';
 
@@ -61,12 +61,21 @@ async function renderList() {
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
     editBtn.title = 'Edit';
-    editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5l2 2-8 8H3.5v-2l8-8z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    editBtn.appendChild(makeSvgIcon('M11.5 2.5l2 2-8 8H3.5v-2l8-8z', {
+      'stroke': 'currentColor',
+      'stroke-width': '1.3',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round'
+    }));
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete';
     deleteBtn.title = 'Delete';
-    deleteBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+    deleteBtn.appendChild(makeSvgIcon('M4 4l8 8M12 4l-8 8', {
+      'stroke': 'currentColor',
+      'stroke-width': '1.3',
+      'stroke-linecap': 'round'
+    }));
 
     actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
@@ -205,4 +214,24 @@ function renderColorPicker(activeColor) {
   });
 }
 
+// ── SVG Helpers ────────────────────────────────────────────
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function makeSvgIcon(pathD, pathAttrs) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('fill', 'none');
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', pathD);
+  for (const [k, v] of Object.entries(pathAttrs)) {
+    path.setAttribute(k, v);
+  }
+
+  svg.appendChild(path);
+  return svg;
+}
 

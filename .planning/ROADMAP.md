@@ -1,88 +1,26 @@
 # Roadmap: Simple Workspaces
 
-## Overview
+## Milestones
 
-This milestone hardens an existing Firefox extension for AMO publishing. The core workspace UI already works; the work is correctness, security, and data portability. Four phases execute in strict dependency order: MV3 migration and security hardening first (foundation for everything else), then atomic workspace switching (data integrity), then per-window workspace tracking (correctness), then Firefox Sync migration (data portability). Each phase delivers one complete, verifiable capability on top of the previous.
+- ✅ **v1.0 MVP** — Phases 1-4 (shipped 2026-03-21)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 MVP (Phases 1-4) — SHIPPED 2026-03-21</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: MV3 and Security (2/2 plans) — completed 2026-03-21
+- [x] Phase 2: Data Integrity (2/2 plans) — completed 2026-03-21
+- [x] Phase 3: Multi-Window Tracking (2/2 plans) — completed 2026-03-21
+- [x] Phase 4: Firefox Sync (2/2 plans) — completed 2026-03-21
 
-- [x] **Phase 1: MV3 and Security** - Migrate to Manifest V3 and eliminate all AMO security review blockers (completed 2026-03-21)
-- [x] **Phase 2: Data Integrity** - Make workspace switching atomic with rollback and storage validation (completed 2026-03-21)
-- [x] **Phase 3: Multi-Window Tracking** - Each browser window independently tracks its own active workspace (completed 2026-03-21)
-- [x] **Phase 4: Firefox Sync** - Migrate primary storage to browser.storage.sync with quota-safe fallback (completed 2026-03-21)
-
-## Phase Details
-
-### Phase 1: MV3 and Security
-**Goal**: Extension passes AMO review — Manifest V3 compliant, no security vulnerabilities, non-persistent background correctly structured
-**Depends on**: Nothing (first phase)
-**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, DATA-05
-**Success Criteria** (what must be TRUE):
-  1. `web-ext lint` reports zero errors on the MV3 manifest
-  2. Popup SVG icons render correctly using DOM APIs with no innerHTML anywhere in the codebase
-  3. Background script rejects messages from non-extension origins (sender URL not `moz-extension://`)
-  4. Workspace color values that are not valid hex format are rejected before any CSS is applied
-  5. In-memory switch lock and debounce state persists correctly across background page unloads via `storage.session`
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 01-01-PLAN.md — MV3 manifest migration and background ES module split
-- [x] 01-02-PLAN.md — Security hardening (sender validation, color validation, SVG DOM) and verification
-
-### Phase 2: Data Integrity
-**Goal**: Workspace switching never loses tabs — atomic create-then-delete with rollback on failure and schema validation on every storage read
-**Depends on**: Phase 1
-**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04
-**Success Criteria** (what must be TRUE):
-  1. If a tab creation fails mid-switch, all partially-created tabs are closed and the original workspace tabs remain open
-  2. Workspace data that fails schema validation on read triggers automatic recovery to a safe default state rather than a crash or silent corruption
-  3. Workspace IDs are UUID format (`crypto.randomUUID()`) — no `Date.now()` or `Math.random()` patterns remain
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 02-01-PLAN.md — Schema validation on storage reads and crypto.randomUUID replacement
-- [x] 02-02-PLAN.md — Atomic workspace switching with snapshot rollback
-
-### Phase 3: Multi-Window Tracking
-**Goal**: Each browser window independently tracks its own active workspace — no cross-window corruption possible
-**Depends on**: Phase 2
-**Requirements**: WIN-01, WIN-02, WIN-03, WIN-04, WIN-05, WIN-06
-**Success Criteria** (what must be TRUE):
-  1. Opening two windows with different workspaces active — switching tabs in Window A does not change the workspace state displayed in Window B's popup
-  2. Popup shows which workspaces are active in other open windows
-  3. User can click a workspace owned by another window to switch focus to that window
-  4. Each window's toolbar badge shows its own active workspace initial independently
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 03-01-PLAN.md — Background multi-window infrastructure (window map, windowId-aware functions, event listeners, reclaim)
-- [x] 03-02-PLAN.md — Popup multi-window UI (in-use indicators, unassigned banner, assign action, focus window)
-
-### Phase 4: Firefox Sync
-**Goal**: Workspaces survive reinstalls and sync across devices via Firefox account, with graceful fallback when sync quota is exceeded
-**Depends on**: Phase 3
-**Requirements**: SYNC-01, SYNC-02, SYNC-03, SYNC-04, SYNC-05
-**Success Criteria** (what must be TRUE):
-  1. After reinstalling the extension with the same Firefox account logged in, all previously created workspaces are restored
-  2. A workspace with 40 tabs saves and loads correctly without quota errors
-  3. When sync quota is exceeded, the extension silently falls back to `storage.local` without data loss
-  4. Existing workspaces from `storage.local` are automatically migrated to `storage.sync` on first run after update
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 04-01-PLAN.md — Create sync.js storage abstraction module (sync/local/migration/chunking)
-- [x] 04-02-PLAN.md — Wire sync.js into all modules, replace storage.local calls, add migration hooks
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
-| 2. Data Integrity | 2/2 | Complete   | 2026-03-21 |
-| 3. Multi-Window Tracking | 2/2 | Complete   | 2026-03-21 |
-| 4. Firefox Sync | 2/2 | Complete   | 2026-03-21 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. MV3 and Security | v1.0 | 2/2 | Complete | 2026-03-21 |
+| 2. Data Integrity | v1.0 | 2/2 | Complete | 2026-03-21 |
+| 3. Multi-Window Tracking | v1.0 | 2/2 | Complete | 2026-03-21 |
+| 4. Firefox Sync | v1.0 | 2/2 | Complete | 2026-03-21 |

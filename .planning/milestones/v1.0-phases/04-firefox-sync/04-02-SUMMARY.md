@@ -108,6 +108,15 @@ None - no external service configuration required.
 - Existing local storage data migrates to sync on next update or startup
 - All ESLint and web-ext lint checks pass — extension is AMO-publishable
 
+## Self-Check: PASSED
+
+- FOUND: src/background/workspaces.js
+- FOUND: src/background/index.js
+- FOUND: src/background/messaging.js
+- FOUND: .planning/phases/04-firefox-sync/04-02-SUMMARY.md
+- FOUND: commit f99f699 (Task 1)
+- FOUND: commit 67eb865 (Task 2)
+
 ---
 *Phase: 04-firefox-sync*
 *Completed: 2026-03-21*

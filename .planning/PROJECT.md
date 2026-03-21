@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Firefox extension that lets users organize browser tabs into named, color-coded workspaces they can switch between. Currently functional but fragile — this milestone hardens the extension, adds multi-window awareness, migrates storage to sync with the user's Firefox account, and fixes known bugs including data loss risks.
+A Firefox extension that lets users organize browser tabs into named, color-coded workspaces they can switch between. Hardened for production: MV3 compliant, atomic switching with rollback, per-window workspace tracking, and Firefox Sync storage with quota-safe fallback.
 
 ## Core Value
 
@@ -43,15 +43,17 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 ## Context
 
-- Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js), popup/ (popup.js, popup.html, popup.css)
+**Shipped v1.0** with 1,595 LOC (JS + HTML + CSS) across 4 phases, 8 plans.
+
+- Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js, sync.js), popup/ (popup.js, popup.html, popup.css)
 - Manifest V3 compliant — AMO publishing unblocked
-- Codebase map exists at `.planning/codebase/`
 - Per-window workspace tracking via `windowWorkspaces` session map — each window owns its workspace independently
-- `switchWorkspace()` is now atomic — snapshot rollback restores state on partial tab creation failure
-- Storage now uses `browser.storage.sync` as primary with automatic `browser.storage.local` fallback at 90% quota
+- `switchWorkspace()` is atomic — snapshot rollback restores state on partial tab creation failure
+- Storage uses `browser.storage.sync` as primary with automatic `browser.storage.local` fallback at 90% quota
 - Chunked sync schema: workspace metadata + tab chunks (25 tabs/chunk, favIconUrl stripped to save space)
 - `migrateIfNeeded()` runs on update/startup — existing local data migrated idempotently
 - No automated tests exist
+- Known tech debt: validateWorkspaceData not called on readFromLocal() fallback path; circular dependency state.js ↔ workspaces.js (latent)
 
 ## Constraints
 
@@ -64,9 +66,14 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | ✓ Phase 4 |
-| Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | ✓ Phase 1 |
-| Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | ✓ Phase 3 |
+| Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | ✓ Good — v1.0 |
+| Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | ✓ Good — v1.0 |
+| Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | ✓ Good — v1.0 |
+| Split background.js into 4 ES modules | Clean boundaries for multi-phase work | ✓ Good — v1.0 |
+| Throttle-first save (500ms suppression) | Eliminates dropped saves on MV3 background unload | ✓ Good — v1.0 |
+| Atomic switch with snapshot rollback | Prevents tab loss on partial switch failure | ✓ Good — v1.0 |
+| Chunked sync schema (25 tabs/chunk, no favIconUrl) | Stays under 8KB per-item limit for storage.sync | ✓ Good — v1.0 |
+| storage.session for window map + switch lock | Per-session state survives background unloads, never syncs | ✓ Good — v1.0 |
 
 ## Evolution
 
@@ -86,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 4 completion*
+*Last updated: 2026-03-21 after v1.0 milestone*

@@ -3,7 +3,7 @@
 // Firefox event pages only wake for events with top-level listeners.
 
 import { throttledSave } from './state.js'
-import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace } from './workspaces.js'
+import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, validateWorkspaceData } from './workspaces.js'
 import { handleMessage } from './messaging.js'
 
 // ── Tab Event Listeners (live-save via throttle) ────────────
@@ -29,8 +29,9 @@ browser.runtime.onInstalled.addListener(async (details) => {
 })
 
 browser.runtime.onStartup.addListener(async () => {
-  const { workspaces } = await browser.storage.local.get('workspaces')
-  if (!workspaces || workspaces.length === 0) await initDefaultWorkspace()
+  const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const data = validateWorkspaceData(raw)
+  if (!data.workspaces.length) await initDefaultWorkspace()
 })
 
 // ── Safety net: save on suspend ─────────────────────────────
@@ -40,8 +41,9 @@ browser.runtime.onSuspend.addListener(() => {
 
 // ── Badge init (async, after listeners) ─────────────────────
 ;(async () => {
-  const data = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
-  if (data.workspaces && data.activeWorkspaceId) {
+  const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const data = validateWorkspaceData(raw)
+  if (data.workspaces.length && data.activeWorkspaceId) {
     const active = data.workspaces.find(w => w.id === data.activeWorkspaceId)
     if (active) updateBadge(active)
   }

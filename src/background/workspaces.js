@@ -20,6 +20,36 @@ function sanitizeColor(value) {
   return COLORS[0].hex  // fallback to Blue: #3b82f6
 }
 
+// ── Schema Validation ────────────────────────────────────────
+
+export const DEFAULT_WORKSPACE_DATA = () => ({
+  workspaces: [],
+  activeWorkspaceId: null,
+})
+
+export function validateWorkspaceData(data) {
+  if (!data || typeof data !== 'object') return DEFAULT_WORKSPACE_DATA()
+  if (!Array.isArray(data.workspaces)) return DEFAULT_WORKSPACE_DATA()
+  if (data.workspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
+
+  const validWorkspaces = data.workspaces.filter(ws =>
+    ws !== null &&
+    typeof ws === 'object' &&
+    typeof ws.id === 'string' && ws.id.length > 0 &&
+    typeof ws.name === 'string' &&
+    typeof ws.color === 'string' &&
+    Array.isArray(ws.tabs)
+  )
+
+  if (validWorkspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
+
+  const activeValid = validWorkspaces.some(ws => ws.id === data.activeWorkspaceId)
+  return {
+    workspaces: validWorkspaces,
+    activeWorkspaceId: activeValid ? data.activeWorkspaceId : validWorkspaces[0].id,
+  }
+}
+
 // ── Initialization ──────────────────────────────────────────
 
 export async function initDefaultWorkspace() {
@@ -27,7 +57,7 @@ export async function initDefaultWorkspace() {
   const tabData = serializeTabs(tabs)
 
   const defaultWorkspace = {
-    id: genId(),
+    id: crypto.randomUUID(),
     name: 'Default',
     color: COLORS[0].hex,
     tabs: tabData,
@@ -49,8 +79,9 @@ export async function saveCurrentWorkspace() {
   if (state.isSwitching) return
 
   try {
-    const data = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
-    if (!data.workspaces || !data.activeWorkspaceId) return
+    const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+    const data = validateWorkspaceData(raw)
+    if (!data.workspaces.length) return
 
     const tabs = await browser.tabs.query({ currentWindow: true })
     const tabData = serializeTabs(tabs)
@@ -74,8 +105,9 @@ export async function switchWorkspace(targetId) {
   await setSessionState({ isSwitching: true })
 
   try {
-    const data = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
-    if (!data.workspaces) throw new Error('No workspaces found')
+    const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+    const data = validateWorkspaceData(raw)
+    if (!data.workspaces.length) throw new Error('No workspaces found')
 
     if (targetId === data.activeWorkspaceId) return
 
@@ -161,10 +193,11 @@ export async function switchWorkspace(targetId) {
 // ── Create Workspace ────────────────────────────────────────
 
 export async function createWorkspace(name, color) {
-  const { workspaces } = await browser.storage.local.get('workspaces')
+  const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const { workspaces } = validateWorkspaceData(raw)
 
   const newWorkspace = {
-    id: genId(),
+    id: crypto.randomUUID(),
     name: name || `Workspace ${workspaces.length + 1}`,
     color: color ? sanitizeColor(color) : COLORS[workspaces.length % COLORS.length].hex,
     tabs: [],
@@ -183,7 +216,8 @@ export async function createWorkspace(name, color) {
 // ── Delete Workspace ────────────────────────────────────────
 
 export async function deleteWorkspace(workspaceId) {
-  const data = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const data = validateWorkspaceData(raw)
   if (data.workspaces.length <= 1) {
     return { success: false, error: 'Cannot delete the last workspace' }
   }
@@ -205,7 +239,8 @@ export async function deleteWorkspace(workspaceId) {
 // ── Update Workspace (rename / recolor) ─────────────────────
 
 export async function updateWorkspace(workspaceId, updates) {
-  const { workspaces } = await browser.storage.local.get('workspaces')
+  const raw = await browser.storage.local.get(['workspaces', 'activeWorkspaceId'])
+  const { workspaces } = validateWorkspaceData(raw)
   const idx = workspaces.findIndex(w => w.id === workspaceId)
   if (idx === -1) return { success: false, error: 'Not found' }
 
@@ -249,6 +284,3 @@ export function serializeTabs(tabs) {
     }))
 }
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
-}

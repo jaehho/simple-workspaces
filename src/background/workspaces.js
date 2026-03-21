@@ -13,6 +13,13 @@ export const COLORS = [
   { name: 'Pink',   hex: '#ec4899' },
 ]
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/
+
+function sanitizeColor(value) {
+  if (HEX_COLOR_RE.test(value)) return value
+  return COLORS[0].hex  // fallback to Blue: #3b82f6
+}
+
 // ── Initialization ──────────────────────────────────────────
 
 export async function initDefaultWorkspace() {
@@ -159,7 +166,7 @@ export async function createWorkspace(name, color) {
   const newWorkspace = {
     id: genId(),
     name: name || `Workspace ${workspaces.length + 1}`,
-    color: color || COLORS[workspaces.length % COLORS.length].hex,
+    color: color ? sanitizeColor(color) : COLORS[workspaces.length % COLORS.length].hex,
     tabs: [],
     createdAt: Date.now(),
   }
@@ -203,7 +210,7 @@ export async function updateWorkspace(workspaceId, updates) {
   if (idx === -1) return { success: false, error: 'Not found' }
 
   if (updates.name !== undefined) workspaces[idx].name = updates.name
-  if (updates.color !== undefined) workspaces[idx].color = updates.color
+  if (updates.color !== undefined) workspaces[idx].color = sanitizeColor(updates.color)
 
   await browser.storage.local.set({ workspaces })
 
@@ -221,7 +228,7 @@ export async function updateWorkspace(workspaceId, updates) {
 export function updateBadge(workspace) {
   const initial = workspace.name.charAt(0).toUpperCase()
   browser.action.setBadgeText({ text: initial })
-  browser.action.setBadgeBackgroundColor({ color: workspace.color })
+  browser.action.setBadgeBackgroundColor({ color: sanitizeColor(workspace.color) })
 }
 
 // ── Helpers ─────────────────────────────────────────────────

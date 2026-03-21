@@ -2,11 +2,20 @@
 
 import { switchWorkspace, createWorkspace, deleteWorkspace, updateWorkspace, saveCurrentWorkspace, COLORS } from './workspaces.js'
 
-// TODO: sender validation (SEC-03) added in plan 02
+// Dev-mode detection — cached at startup (per D-11)
+let isDevMode = false
+browser.management.getSelf().then(info => {
+  isDevMode = (info.installType === 'development')
+})
 
 export function handleMessage(msg, sender) {
-  // TODO: sender validation (SEC-03) added in plan 02
-  void sender
+  // Validate sender origin — reject non-extension messages (per D-10)
+  if (!sender.url || !sender.url.startsWith('moz-extension://')) {
+    if (isDevMode) {
+      console.warn('[Workspaces] Rejected message from non-extension origin:', sender.url)
+    }
+    return Promise.resolve(null)
+  }
 
   switch (msg.action) {
     case 'getState':

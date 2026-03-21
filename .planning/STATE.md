@@ -55,8 +55,14 @@ None.
 
 None active — v1.0 shipped. Tech debt documented in milestone audit.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260321-oyr | Fix edit/new workspace modal cutoff in popup | 2026-03-21 | 6a250dd | [260321-oyr-the-edit-workspace-popup-and-new-workspa](./quick/260321-oyr-the-edit-workspace-popup-and-new-workspa/) |
+
 ## Session Continuity
 
-Last session: 2026-03-21
+Last activity: 2026-03-21 - Completed quick task 260321-oyr: Fix edit/new workspace modal cutoff in popup
 Stopped at: v1.0 milestone complete
 Resume file: None

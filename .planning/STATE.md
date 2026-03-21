@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-02-PLAN.md — Plan 2 of 2 complete, Phase 03 multi-window-tracking fully done
-last_updated: "2026-03-21T11:32:16.979Z"
+stopped_at: Completed 04-01-PLAN.md — Plan 1 of 2 complete, sync.js storage abstraction created
+last_updated: "2026-03-21T20:51:08.062Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 03 — multi-window-tracking
+**Current focus:** Phase 04 — firefox-sync
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (firefox-sync) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: Not started
 | Phase 03-multi-window-tracking P01 | 4 | 2 tasks | 4 files |
 | Phase 03-multi-window-tracking P02 | 2min | 1 tasks | 2 files |
 | Phase 03-multi-window-tracking P02 | 5 | 2 tasks | 2 files |
+| Phase 04-firefox-sync P01 | 2min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 03-multi-window-tracking]: currentWindowId acquired via browser.tabs.query in popup context — correct because currentWindow: true refers to popup's window
 - [Phase 03-multi-window-tracking]: onFocusWindow closes popup immediately after sending message — non-destructive, correct UX
 - [Phase 03-multi-window-tracking]: Human verification approved with environmental notes: focus-window test limited by Hyprland/Wayland WM focus handling (not an extension bug); browser restart reclaim untestable with web-ext run (process exits with all windows); modal size is pre-existing issue
+- [Phase 04-firefox-sync]: favIconUrl stripped from sync writes to avoid 8KB per-item limit — browser re-fetches favicons on restore
+- [Phase 04-firefox-sync]: sync.js is the sole workspace persistence interface — callers never touch browser.storage directly for workspace data
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T11:22:21.907Z
-Stopped at: Completed 03-02-PLAN.md — Plan 2 of 2 complete, Phase 03 multi-window-tracking fully done
+Last session: 2026-03-21T20:51:08.060Z
+Stopped at: Completed 04-01-PLAN.md — Plan 1 of 2 complete, sync.js storage abstraction created
 Resume file: None

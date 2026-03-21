@@ -34,11 +34,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Storage Sync
 
-- [ ] **SYNC-01**: Primary storage is `browser.storage.sync` tied to Firefox account
-- [ ] **SYNC-02**: Workspace data split into per-workspace keys (`ws:{id}`) to respect 8KB per-item limit
-- [ ] **SYNC-03**: Proactive quota monitoring via `getBytesInUse()` before writes
-- [ ] **SYNC-04**: Graceful fallback to `browser.storage.local` when sync quota exceeded
-- [ ] **SYNC-05**: Migration path from existing `storage.local` data to new sync schema on first run
+- [x] **SYNC-01**: Primary storage is `browser.storage.sync` tied to Firefox account
+- [x] **SYNC-02**: Workspace data split into per-workspace keys (`ws:{id}`) to respect 8KB per-item limit
+- [x] **SYNC-03**: Proactive quota monitoring via `getBytesInUse()` before writes
+- [x] **SYNC-04**: Graceful fallback to `browser.storage.local` when sync quota exceeded
+- [x] **SYNC-05**: Migration path from existing `storage.local` data to new sync schema on first run
 
 ## v2 Requirements
 
@@ -92,11 +92,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WIN-04 | Phase 3 | Complete |
 | WIN-05 | Phase 3 | Complete |
 | WIN-06 | Phase 3 | Complete |
-| SYNC-01 | Phase 4 | Pending |
-| SYNC-02 | Phase 4 | Pending |
-| SYNC-03 | Phase 4 | Pending |
-| SYNC-04 | Phase 4 | Pending |
-| SYNC-05 | Phase 4 | Pending |
+| SYNC-01 | Phase 4 | Complete |
+| SYNC-02 | Phase 4 | Complete |
+| SYNC-03 | Phase 4 | Complete |
+| SYNC-04 | Phase 4 | Complete |
+| SYNC-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total

@@ -1,6 +1,7 @@
 // ── Workspace CRUD and Tab Operations ───────────────────────
 
 import { getSessionState, setSessionState, getWindowMap, setWindowEntry } from './state.js'
+import { getWorkspaces, saveWorkspaces, deleteWorkspaceFromSync } from './sync.js'
 
 export const COLORS = [
   { name: 'Blue',   hex: '#3b82f6' },
@@ -65,10 +66,7 @@ export async function initDefaultWorkspace(windowId) {
     createdAt: Date.now(),
   }
 
-  await browser.storage.local.set({
-    workspaces: [defaultWorkspace],
-    activeWorkspaceId: defaultWorkspace.id,
-  })
+  await saveWorkspaces([defaultWorkspace])
 
   await setWindowEntry(windowId, defaultWorkspace.id)
   updateBadge(defaultWorkspace, windowId)
@@ -81,9 +79,8 @@ export async function saveCurrentWorkspace(windowId) {
   if (state.isSwitching) return
 
   try {
-    const raw = await browser.storage.local.get(['workspaces'])
-    const data = validateWorkspaceData(raw)
-    if (!data.workspaces.length) return
+    const workspaces = await getWorkspaces()
+    if (!workspaces.length) return
 
     const windowMap = await getWindowMap()
     const workspaceId = windowMap[String(windowId)]
@@ -95,10 +92,10 @@ export async function saveCurrentWorkspace(windowId) {
     // Don't save empty state (could be mid-switch or window closing)
     if (tabData.length === 0) return
 
-    const idx = data.workspaces.findIndex(w => w.id === workspaceId)
+    const idx = workspaces.findIndex(w => w.id === workspaceId)
     if (idx !== -1) {
-      data.workspaces[idx].tabs = tabData
-      await browser.storage.local.set({ workspaces: data.workspaces })
+      workspaces[idx].tabs = tabData
+      await saveWorkspaces(workspaces)
     }
   } catch (e) {
     console.error('[Workspaces] Save error:', e)
@@ -113,9 +110,8 @@ export async function switchWorkspace(targetId, windowId) {
   const createdTabIds = []
 
   try {
-    const raw = await browser.storage.local.get(['workspaces'])
-    const data = validateWorkspaceData(raw)
-    if (!data.workspaces.length) throw new Error('No workspaces found')
+    const workspaces = await getWorkspaces()
+    if (!workspaces.length) throw new Error('No workspaces found')
 
     // Exclusive ownership check (D-01): reject if targetId is active in another window
     const windowMap = await getWindowMap()
@@ -131,22 +127,22 @@ export async function switchWorkspace(targetId, windowId) {
 
     const currentTabs = await browser.tabs.query({ windowId })
 
-    // Save current workspace tabs into data (mutates data.workspaces in memory)
+    // Save current workspace tabs into workspaces (mutates in memory)
     if (currentWsId) {
-      const currentIdx = data.workspaces.findIndex(w => w.id === currentWsId)
+      const currentIdx = workspaces.findIndex(w => w.id === currentWsId)
       if (currentIdx !== -1) {
-        data.workspaces[currentIdx].tabs = serializeTabs(currentTabs)
+        workspaces[currentIdx].tabs = serializeTabs(currentTabs)
       }
     }
 
     // Snapshot AFTER updating current tabs, BEFORE opening new ones
-    // Deep copy required — data.workspaces was mutated above
+    // Deep copy required — workspaces was mutated above
     snapshot = {
-      workspaces: JSON.parse(JSON.stringify(data.workspaces)),
+      workspaces: JSON.parse(JSON.stringify(workspaces)),
       previousWsId: currentWsId,
     }
 
-    const target = data.workspaces.find(w => w.id === targetId)
+    const target = workspaces.find(w => w.id === targetId)
     if (!target) throw new Error('Target workspace not found')
 
     // Determine tabs to open
@@ -201,8 +197,8 @@ export async function switchWorkspace(targetId, windowId) {
       await browser.tabs.remove(oldTabIds)
     }
 
-    // Persist workspaces (tab data update); do NOT write activeWorkspaceId to local storage
-    await browser.storage.local.set({ workspaces: data.workspaces })
+    // Persist workspaces (tab data update); do NOT write activeWorkspaceId to sync
+    await saveWorkspaces(workspaces)
 
     // Update window-workspace map
     await setWindowEntry(windowId, targetId)
@@ -233,7 +229,7 @@ async function rollbackSwitch(createdTabIds, snapshot, windowId) {
   }
   if (snapshot) {
     try {
-      await browser.storage.local.set({ workspaces: snapshot.workspaces })
+      await saveWorkspaces(snapshot.workspaces)
       // Restore window map entry to previous value
       if (snapshot.previousWsId !== undefined) {
         await setWindowEntry(windowId, snapshot.previousWsId)
@@ -247,8 +243,7 @@ async function rollbackSwitch(createdTabIds, snapshot, windowId) {
 // ── Create Workspace ────────────────────────────────────────
 
 export async function createWorkspace(name, color, windowId) {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const { workspaces } = validateWorkspaceData(raw)
+  const workspaces = await getWorkspaces()
 
   const newWorkspace = {
     id: crypto.randomUUID(),
@@ -259,7 +254,7 @@ export async function createWorkspace(name, color, windowId) {
   }
 
   workspaces.push(newWorkspace)
-  await browser.storage.local.set({ workspaces })
+  await saveWorkspaces(workspaces)
 
   // Switch to the new (empty) workspace
   await switchWorkspace(newWorkspace.id, windowId)
@@ -270,23 +265,23 @@ export async function createWorkspace(name, color, windowId) {
 // ── Delete Workspace ────────────────────────────────────────
 
 export async function deleteWorkspace(workspaceId, windowId) {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const data = validateWorkspaceData(raw)
-  if (data.workspaces.length <= 1) {
+  const workspaces = await getWorkspaces()
+  if (workspaces.length <= 1) {
     return { success: false, error: 'Cannot delete the last workspace' }
   }
 
-  const idx = data.workspaces.findIndex(w => w.id === workspaceId)
+  const idx = workspaces.findIndex(w => w.id === workspaceId)
   if (idx === -1) return { success: false, error: 'Workspace not found' }
 
-  data.workspaces.splice(idx, 1)
-  await browser.storage.local.set({ workspaces: data.workspaces })
+  workspaces.splice(idx, 1)
+  await saveWorkspaces(workspaces)
+  await deleteWorkspaceFromSync(workspaceId)
 
   // If we deleted the active workspace for this window, switch to the first available
   const windowMap = await getWindowMap()
   const isActiveHere = windowMap[String(windowId)] === workspaceId
   if (isActiveHere) {
-    await switchWorkspace(data.workspaces[0].id, windowId)
+    await switchWorkspace(workspaces[0].id, windowId)
   }
 
   return { success: true }
@@ -295,15 +290,14 @@ export async function deleteWorkspace(workspaceId, windowId) {
 // ── Update Workspace (rename / recolor) ─────────────────────
 
 export async function updateWorkspace(workspaceId, updates, windowId) {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const { workspaces } = validateWorkspaceData(raw)
+  const workspaces = await getWorkspaces()
   const idx = workspaces.findIndex(w => w.id === workspaceId)
   if (idx === -1) return { success: false, error: 'Not found' }
 
   if (updates.name !== undefined) workspaces[idx].name = updates.name
   if (updates.color !== undefined) workspaces[idx].color = sanitizeColor(updates.color)
 
-  await browser.storage.local.set({ workspaces })
+  await saveWorkspaces(workspaces)
 
   // Update badge if this is the active workspace for this window
   const windowMap = await getWindowMap()
@@ -317,8 +311,7 @@ export async function updateWorkspace(workspaceId, updates, windowId) {
 // ── Assign Workspace (D-09) ──────────────────────────────────
 
 export async function assignWorkspace(workspaceId, windowId) {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const { workspaces } = validateWorkspaceData(raw)
+  const workspaces = await getWorkspaces()
   if (!workspaces.length) return { success: false, error: 'No workspaces found' }
 
   const workspace = workspaces.find(w => w.id === workspaceId)
@@ -336,7 +329,7 @@ export async function assignWorkspace(workspaceId, windowId) {
   const tabs = await browser.tabs.query({ windowId })
   workspace.tabs = serializeTabs(tabs)
 
-  await browser.storage.local.set({ workspaces })
+  await saveWorkspaces(workspaces)
   await setWindowEntry(windowId, workspaceId)
   updateBadge(workspace, windowId)
 
@@ -346,8 +339,7 @@ export async function assignWorkspace(workspaceId, windowId) {
 // ── Reclaim Workspaces on Restart (D-10) ────────────────────
 
 export async function reclaimWorkspaces() {
-  const raw = await browser.storage.local.get(['workspaces'])
-  const { workspaces } = validateWorkspaceData(raw)
+  const workspaces = await getWorkspaces()
   if (!workspaces.length) return
 
   const windows = await browser.windows.getAll({ populate: true })

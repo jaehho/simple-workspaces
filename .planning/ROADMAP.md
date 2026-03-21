@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: MV3 and Security** - Migrate to Manifest V3 and eliminate all AMO security review blockers (completed 2026-03-21)
 - [x] **Phase 2: Data Integrity** - Make workspace switching atomic with rollback and storage validation (completed 2026-03-21)
 - [x] **Phase 3: Multi-Window Tracking** - Each browser window independently tracks its own active workspace (completed 2026-03-21)
-- [ ] **Phase 4: Firefox Sync** - Migrate primary storage to browser.storage.sync with quota-safe fallback
+- [x] **Phase 4: Firefox Sync** - Migrate primary storage to browser.storage.sync with quota-safe fallback (completed 2026-03-21)
 
 ## Phase Details
 
@@ -70,10 +70,10 @@ Plans:
   2. A workspace with 40 tabs saves and loads correctly without quota errors
   3. When sync quota is exceeded, the extension silently falls back to `storage.local` without data loss
   4. Existing workspaces from `storage.local` are automatically migrated to `storage.sync` on first run after update
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 04-01-PLAN.md — Create sync.js storage abstraction module (sync/local/migration/chunking)
-- [ ] 04-02-PLAN.md — Wire sync.js into all modules, replace storage.local calls, add migration hooks
+- [x] 04-02-PLAN.md — Wire sync.js into all modules, replace storage.local calls, add migration hooks
 
 ## Progress
 
@@ -85,4 +85,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. MV3 and Security | 2/2 | Complete   | 2026-03-21 |
 | 2. Data Integrity | 2/2 | Complete   | 2026-03-21 |
 | 3. Multi-Window Tracking | 2/2 | Complete   | 2026-03-21 |
-| 4. Firefox Sync | 1/2 | In Progress|  |
+| 4. Firefox Sync | 2/2 | Complete   | 2026-03-21 |

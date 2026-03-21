@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-data-integrity-02-01-PLAN.md
-last_updated: "2026-03-21T09:52:36.437Z"
+stopped_at: Completed 02-data-integrity-02-02-PLAN.md
+last_updated: "2026-03-21T09:55:49.686Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -49,6 +49,7 @@ Plan: 2 of 2
 | Phase 01-mv3-and-security P01 | 1 | 1 tasks | 7 files |
 | Phase 01-mv3-and-security P02 | 1 | 3 tasks | 3 files |
 | Phase 02-data-integrity P01 | 2 | 1 tasks | 2 files |
+| Phase 02-data-integrity P02 | 1 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,7 @@ Recent decisions affecting current work:
 - [Phase 01-mv3-and-security]: D-10/D-11: Silent sender rejection in production; dev-mode via browser.management.getSelf() with no extra permission
 - [Phase 01-mv3-and-security]: D-12: HEX_COLOR_RE /^#[0-9a-fA-F]{6}$/ applied at create/update/badge; COLORS[0].hex fallback
 - [Phase 02-data-integrity]: validateWorkspaceData exported from workspaces.js and wired into every storage.local.get call site; genId() deleted, crypto.randomUUID() used inline
+- [Phase 02-data-integrity]: rollbackSwitch is private (not exported); snapshot taken after saving current tabs but before tabs.create loop; rollback never in finally block (only in failure path and catch)
 
 ### Pending Todos
 
@@ -79,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T09:52:36.436Z
-Stopped at: Completed 02-data-integrity-02-01-PLAN.md
+Last session: 2026-03-21T09:55:49.684Z
+Stopped at: Completed 02-data-integrity-02-02-PLAN.md
 Resume file: None

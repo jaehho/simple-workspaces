@@ -17,8 +17,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Data Integrity
 
-- [ ] **DATA-01**: Workspace switch is atomic — all new tabs created successfully before any old tabs removed
-- [ ] **DATA-02**: Failed switch rolls back: pre-switch snapshot restored, no data loss
+- [x] **DATA-01**: Workspace switch is atomic — all new tabs created successfully before any old tabs removed
+- [x] **DATA-02**: Failed switch rolls back: pre-switch snapshot restored, no data loss
 - [x] **DATA-03**: Storage reads validated against schema; corrupted data triggers recovery to safe default
 - [x] **DATA-04**: ID generation uses `crypto.randomUUID()` instead of `Date.now()` + `Math.random()`
 - [x] **DATA-05**: In-memory state (`isSwitching`, debounce timers) moved to `storage.session` for MV3 non-persistent background compatibility
@@ -81,8 +81,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-03 | Phase 1 | Complete |
 | SEC-04 | Phase 1 | Complete |
 | SEC-05 | Phase 1 | Complete |
-| DATA-01 | Phase 2 | Pending |
-| DATA-02 | Phase 2 | Pending |
+| DATA-01 | Phase 2 | Complete |
+| DATA-02 | Phase 2 | Complete |
 | DATA-03 | Phase 2 | Complete |
 | DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 1 | Complete |

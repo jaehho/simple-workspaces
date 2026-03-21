@@ -144,6 +144,69 @@ body {
   color: #f38ba8;
 }
 
+/* ── Unassigned Window Banner ───────────── */
+
+.ws-unassigned-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #252536;
+  border-bottom: 1px solid #2e2e3e;
+  color: #6c7086;
+  font-size: 11px;
+}
+
+.ws-unassigned-banner svg {
+  flex-shrink: 0;
+  color: #6c7086;
+}
+
+.ws-unassigned-heading {
+  display: block;
+  color: #6c7086;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.ws-unassigned-subtext {
+  display: block;
+  color: #6c7086;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+  opacity: 0.7;
+}
+
+/* ── In-Use Indicator ───────────────────── */
+
+.ws-in-use-icon {
+  display: inline-flex;
+  align-items: center;
+  color: #6c7086;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Assign Here Button ─────────────────── */
+
+.ws-actions button.assign {
+  color: #89b4fa;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.ws-actions button.assign:hover {
+  background: #2e2e4e;
+  color: #cdd6f4;
+}
+
+.workspace-list--unassigned .ws-actions {
+  opacity: 1;
+}
+
 /* ── Modal ─────────────────────────────── */
 
 .modal {

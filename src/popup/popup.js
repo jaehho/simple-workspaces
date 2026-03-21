@@ -5,10 +5,15 @@
 let allColors = [];
 let editingId = null;
 let selectedColor = null;
+let currentWindowId = null;
 
 // ── Init ────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Acquire window ID before any messages (RESEARCH.md Pattern 1, HIGH confidence approach)
+  const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+  currentWindowId = activeTab.windowId;
+
   allColors = await browser.runtime.sendMessage({ action: 'getColors' });
   await renderList();
 
@@ -26,18 +31,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── Render ───────────────────────────────────────────────────
 
 async function renderList() {
-  const state = await browser.runtime.sendMessage({ action: 'getState' });
+  const state = await browser.runtime.sendMessage({ action: 'getState', windowId: currentWindowId });
   if (!state || !state.workspaces) return;
 
   const list = document.getElementById('workspace-list');
   while (list.firstChild) list.firstChild.remove();
 
-  state.workspaces.forEach((ws) => {
-    const isActive = ws.id === state.activeWorkspaceId;
+  // Remove any existing unassigned banner before re-rendering
+  const existingBanner = document.querySelector('.ws-unassigned-banner');
+  if (existingBanner) existingBanner.remove();
+
+  const { workspaces, windowMap, activeWorkspaceId } = state;
+
+  // Build reverse lookup: workspaceId -> windowId (for detecting in-use workspaces)
+  const workspaceWindowMap = {};
+  for (const [wid, wsId] of Object.entries(windowMap || {})) {
+    if (wsId) workspaceWindowMap[wsId] = Number(wid);
+  }
+
+  if (activeWorkspaceId === null) {
+    // Unassigned window — show banner and mark list
+    list.classList.add('workspace-list--unassigned');
+
+    const banner = document.createElement('div');
+    banner.className = 'ws-unassigned-banner';
+
+    const icon = makeSvgIcon('M2 3h12v10H2zM2 6h12', {
+      'stroke': 'currentColor',
+      'stroke-width': '1.3',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round'
+    });
+    icon.setAttribute('width', '14');
+    icon.setAttribute('height', '14');
+
+    const textContainer = document.createElement('div');
+    const heading = document.createElement('span');
+    heading.className = 'ws-unassigned-heading';
+    heading.textContent = 'No workspace assigned';
+    const subtext = document.createElement('span');
+    subtext.className = 'ws-unassigned-subtext';
+    subtext.textContent = 'Click a workspace to assign this window, or create a new one.';
+    textContainer.appendChild(heading);
+    textContainer.appendChild(subtext);
+
+    banner.appendChild(icon);
+    banner.appendChild(textContainer);
+
+    list.parentNode.insertBefore(banner, list);
+  } else {
+    list.classList.remove('workspace-list--unassigned');
+  }
+
+  workspaces.forEach((ws) => {
+    const isActive = ws.id === activeWorkspaceId;
+    const isInUse = !isActive && workspaceWindowMap[ws.id] !== undefined && workspaceWindowMap[ws.id] !== currentWindowId;
+    const owningWindowId = workspaceWindowMap[ws.id];
     const tabCount = ws.tabs ? ws.tabs.length : 0;
 
     const li = document.createElement('li');
-    li.className = 'workspace-item' + (isActive ? ' active' : '');
+    li.className = 'workspace-item'
+      + (isActive ? ' active' : '')
+      + (isInUse ? ' workspace-item--in-use' : '');
     li.style.setProperty('--ws-color', ws.color);
 
     // Build DOM safely via createElement (no XSS risk)
@@ -55,8 +110,37 @@ async function renderList() {
     info.appendChild(nameEl);
     info.appendChild(tabsEl);
 
+    // In-use indicator icon (shows when workspace is active in another window)
+    if (isInUse) {
+      const inUseIcon = makeSvgIcon('M2 4h10v9H2zM5 2h9v9', {
+        'stroke': 'currentColor',
+        'stroke-width': '1.3',
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round'
+      });
+      inUseIcon.setAttribute('width', '12');
+      inUseIcon.setAttribute('height', '12');
+      const inUseWrap = document.createElement('span');
+      inUseWrap.className = 'ws-in-use-icon';
+      inUseWrap.title = 'Active in another window';
+      inUseWrap.appendChild(inUseIcon);
+      info.appendChild(inUseWrap);
+    }
+
     const actions = document.createElement('div');
     actions.className = 'ws-actions';
+
+    // Assign Here button (only in unassigned window, only for non-in-use workspaces)
+    if (activeWorkspaceId === null && !isInUse) {
+      const assignBtn = document.createElement('button');
+      assignBtn.className = 'assign';
+      assignBtn.textContent = 'Assign Here';
+      assignBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onAssign(ws.id);
+      });
+      actions.insertBefore(assignBtn, actions.firstChild);
+    }
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
@@ -84,11 +168,15 @@ async function renderList() {
     li.appendChild(info);
     li.appendChild(actions);
 
-    // Click to switch
+    // Click to switch or focus owning window
     li.addEventListener('click', (e) => {
-      // Don't switch if clicking an action button
+      // Don't act if clicking an action button
       if (e.target.closest('.ws-actions')) return;
-      if (!isActive) onSwitch(ws.id);
+      if (isInUse) {
+        onFocusWindow(owningWindowId);
+      } else if (!isActive) {
+        onSwitch(ws.id);
+      }
     });
 
     // Edit
@@ -114,15 +202,27 @@ async function onSwitch(workspaceId) {
   const items = document.querySelectorAll('.workspace-item');
   items.forEach(item => item.style.opacity = '0.5');
 
-  await browser.runtime.sendMessage({ action: 'switchWorkspace', workspaceId });
+  await browser.runtime.sendMessage({ action: 'switchWorkspace', workspaceId, windowId: currentWindowId });
 
   // Popup will close automatically since tabs change,
   // but re-render just in case
   await renderList();
 }
 
+async function onFocusWindow(targetWindowId) {
+  await browser.runtime.sendMessage({ action: 'focusWindow', targetWindowId });
+  window.close();
+}
+
+async function onAssign(workspaceId) {
+  const items = document.querySelectorAll('.workspace-item');
+  items.forEach(item => item.style.opacity = '0.5');
+  await browser.runtime.sendMessage({ action: 'assignWorkspace', workspaceId, windowId: currentWindowId });
+  await renderList();
+}
+
 async function onAdd() {
-  const state = await browser.runtime.sendMessage({ action: 'getState' });
+  const state = await browser.runtime.sendMessage({ action: 'getState', windowId: currentWindowId });
   const count = state.workspaces ? state.workspaces.length : 0;
   const color = allColors[count % allColors.length];
 
@@ -138,7 +238,7 @@ async function onDelete(workspaceId, name, totalCount) {
   const confirmed = confirm(`Delete workspace "${name}"?\n\nAll saved tabs in this workspace will be lost.`);
   if (!confirmed) return;
 
-  await browser.runtime.sendMessage({ action: 'deleteWorkspace', workspaceId });
+  await browser.runtime.sendMessage({ action: 'deleteWorkspace', workspaceId, windowId: currentWindowId });
   await renderList();
 }
 
@@ -182,6 +282,7 @@ async function onModalSave() {
       action: 'updateWorkspace',
       workspaceId: editingId,
       updates: { name: name || 'Untitled', color: selectedColor },
+      windowId: currentWindowId,
     });
   } else {
     // Create new
@@ -189,6 +290,7 @@ async function onModalSave() {
       action: 'createWorkspace',
       name: name || `Workspace`,
       color: selectedColor,
+      windowId: currentWindowId,
     });
   }
 
@@ -234,4 +336,3 @@ function makeSvgIcon(pathD, pathAttrs) {
   svg.appendChild(path);
   return svg;
 }
-

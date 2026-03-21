@@ -21,15 +21,15 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Fix innerHTML XSS in popup SVG icons — Validated in Phase 1: mv3-and-security
 - ✓ Add message sender validation in background script — Validated in Phase 1: mv3-and-security
 - ✓ Fix color value validation (prevent CSS injection) — Validated in Phase 1: mv3-and-security
+- ✓ Fix race condition in workspace switching (atomic with rollback) — Validated in Phase 2: data-integrity
+- ✓ Fix data loss on failed switch (snapshot restore on failure) — Validated in Phase 2: data-integrity
+- ✓ Add storage validation and corruption recovery — Validated in Phase 2: data-integrity
+- ✓ Improve ID generation (crypto.randomUUID) — Validated in Phase 2: data-integrity
 
 ### Active
 
 - [ ] Multi-window awareness: show which window owns a workspace, switch to or close that window
 - [ ] Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota)
-- [ ] Fix race condition in workspace switching (partial tab creation leaves mixed state)
-- [ ] Fix data loss on failed switch (tabs saved before new tabs confirmed created)
-- [ ] Add storage validation and corruption recovery
-- [ ] Improve ID generation (use crypto.getRandomValues)
 
 ### Out of Scope
 
@@ -46,7 +46,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Manifest V3 compliant — AMO publishing unblocked
 - Codebase map exists at `.planning/codebase/`
 - Single global `activeWorkspaceId` causes silent corruption when multiple windows are open
-- `switchWorkspace()` has a race condition: creates new tabs then closes old ones, with no rollback on partial failure
+- `switchWorkspace()` is now atomic — snapshot rollback restores state on partial tab creation failure
 - Current storage (`browser.storage.local`) survives restarts but not reinstalls
 - `browser.storage.sync` quota is 100KB total — workspace metadata is small enough but needs quota monitoring
 - No automated tests exist
@@ -84,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 1 completion*
+*Last updated: 2026-03-21 after Phase 2 completion*

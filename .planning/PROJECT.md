@@ -17,18 +17,18 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Visual indicator of active workspace in popup — existing
 - ✓ Badge shows active workspace initial on toolbar icon — existing
 - ✓ Debounced auto-save of tab changes — existing
+- ✓ Manifest V3 migration — Validated in Phase 1: mv3-and-security
+- ✓ Fix innerHTML XSS in popup SVG icons — Validated in Phase 1: mv3-and-security
+- ✓ Add message sender validation in background script — Validated in Phase 1: mv3-and-security
+- ✓ Fix color value validation (prevent CSS injection) — Validated in Phase 1: mv3-and-security
 
 ### Active
 
 - [ ] Multi-window awareness: show which window owns a workspace, switch to or close that window
 - [ ] Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota)
-- [ ] Manifest V3 migration
 - [ ] Fix race condition in workspace switching (partial tab creation leaves mixed state)
 - [ ] Fix data loss on failed switch (tabs saved before new tabs confirmed created)
 - [ ] Add storage validation and corruption recovery
-- [ ] Fix innerHTML XSS in popup SVG icons
-- [ ] Add message sender validation in background script
-- [ ] Fix color value validation (prevent CSS injection)
 - [ ] Improve ID generation (use crypto.getRandomValues)
 
 ### Out of Scope
@@ -42,8 +42,8 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 ## Context
 
-- Existing extension with ~900 lines of code across background.js, popup.js, popup.css, popup.html, and manifest.json
-- Uses Manifest V2 which Firefox is deprecating — blocks AMO publishing
+- Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js), popup/ (popup.js, popup.html, popup.css)
+- Manifest V3 compliant — AMO publishing unblocked
 - Codebase map exists at `.planning/codebase/`
 - Single global `activeWorkspaceId` causes silent corruption when multiple windows are open
 - `switchWorkspace()` has a race condition: creates new tabs then closes old ones, with no rollback on partial failure
@@ -63,7 +63,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Use browser.storage.sync over IndexedDB | Ties to Firefox account, survives reinstalls, syncs across devices | — Pending |
-| Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | — Pending |
+| Migrate to Manifest V3 | V2 deprecated, blocks AMO publishing | ✓ Phase 1 |
 | Per-window workspace tracking | Global activeWorkspaceId causes multi-window corruption | — Pending |
 
 ## Evolution
@@ -84,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after initialization*
+*Last updated: 2026-03-21 after Phase 1 completion*

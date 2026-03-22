@@ -1,17 +1,13 @@
 {
   "name": "simple-workspaces",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "private": true,
   "type": "module",
   "description": "Firefox extension — save and switch between tab workspaces with automatic live-saving.",
   "scripts": {
     "start": "web-ext run --source-dir src --firefox=firefox-developer-edition",
     "start:android": "web-ext run --source-dir src --target=firefox-android",
-    "build": "web-ext build --source-dir src --overwrite-dest",
-    "lint": "web-ext lint --source-dir src",
-    "lint:eslint": "eslint src/",
-    "lint:all": "npm run lint && npm run lint:eslint",
-    "sign": "export $(cat .env | xargs) && web-ext sign --source-dir src"
+    "lint": "web-ext lint --source-dir src && eslint src/"
   },
   "devDependencies": {
     "addons-linter": "^7.0.0",

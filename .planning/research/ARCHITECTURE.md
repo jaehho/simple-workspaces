@@ -1,456 +1,639 @@
 # Architecture Research
 
-**Domain:** Firefox WebExtension — tab/workspace manager
-**Researched:** 2026-03-21
-**Confidence:** HIGH (based on official MDN docs + Firefox Extension Workshop + direct API verification)
-
-## Standard Architecture
-
-### System Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     UI Layer (transient)                      │
-│                                                               │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │  popup.html / popup.js                               │    │
-│  │  - Reads windowId via windows.getCurrent()           │    │
-│  │  - Sends { action, windowId, ...payload } messages   │    │
-│  │  - Renders workspace list for current window only    │    │
-│  └────────────────────────┬─────────────────────────────┘    │
-└───────────────────────────│─────────────────────────────────-┘
-                            │ browser.runtime.sendMessage
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Background Layer (event-driven)             │
-│                                                              │
-│  ┌─────────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │  Message Router │  │ Window State │  │ Tab Events    │  │
-│  │  (onMessage)    │  │ (per-window  │  │ (debounced    │  │
-│  │                 │  │  switch lock)│  │  save)        │  │
-│  └────────┬────────┘  └──────┬───────┘  └───────┬───────┘  │
-│           │                  │                   │           │
-│  ┌────────▼──────────────────▼───────────────────▼───────┐  │
-│  │              Workspace Operations Layer                │  │
-│  │  switchWorkspace(windowId, targetId)                  │  │
-│  │  saveWindowWorkspace(windowId)                        │  │
-│  │  createWorkspace / deleteWorkspace / updateWorkspace  │  │
-│  └────────────────────────┬──────────────────────────────┘  │
-└───────────────────────────│──────────────────────────────────┘
-                            │ browser.storage.sync / .local
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Storage Layer                            │
-│                                                              │
-│  ┌───────────────────────┐   ┌──────────────────────────┐   │
-│  │  storage.sync         │   │  storage.session          │   │
-│  │  (workspace metadata  │   │  (per-window isSwitching  │   │
-│  │   + tab lists)        │   │   flags, temp state)      │   │
-│  │  Primary, 100KB quota │   │  In-memory, cleared on    │   │
-│  │                       │   │  browser close            │   │
-│  └───────────────────────┘   └──────────────────────────┘   │
-│  ┌───────────────────────┐                                   │
-│  │  storage.local        │                                   │
-│  │  (fallback when sync  │                                   │
-│  │   quota exceeded,     │                                   │
-│  │   or sync unavail.)   │                                   │
-│  └───────────────────────┘                                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Component Responsibilities
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| `popup.js` | Render workspace list for ONE window, capture user intent, send messages | Background via `runtime.sendMessage` |
-| `background.js` (message router) | Validate sender, dispatch to operations, return result | All components |
-| `background.js` (workspace ops) | Atomic switch, CRUD, badge updates | Storage layer, `browser.tabs`, `browser.windows` |
-| `background.js` (tab events) | Debounced auto-save on tab changes, window-scoped | Operations layer |
-| `background.js` (window tracker) | Maintain `windowId → workspaceId` map in `storage.session` | Operations layer, storage |
-| Storage (sync) | Persist workspace definitions and tab lists across reinstalls | Background only |
-| Storage (session) | Hold per-window switching locks (`isSwitching[windowId]`) — cleared on restart | Background only |
-| Storage (local) | Fallback when sync quota exceeded | Background only |
-
-## Recommended Project Structure
-
-The existing flat structure in `src/` is appropriate for this extension's scope. No major restructuring needed, but file responsibilities should be tightened:
-
-```
-src/
-├── background.js          # All background logic (single file, ~500 lines is fine)
-│                          # Sections: init, window-tracker, tab-events, workspace-ops, message-router
-├── manifest.json          # MV3 format: "action" key, non-persistent background
-├── popup/
-│   ├── popup.html         # No inline scripts, CSP-safe
-│   ├── popup.js           # Window-aware: reads windowId, scoped state display
-│   └── popup.css          # Unchanged
-└── icons/
-    ├── icon-48.svg
-    └── icon-96.svg
-```
-
-### Structure Rationale
-
-- **Single background.js:** Extension scope is small enough that splitting into multiple modules adds friction without benefit. Internal comment sections (`// ── Window Tracker ──`) provide sufficient organization.
-- **No build step required:** The codebase deliberately avoids a bundler. Modules within background.js use function-scope, not ES modules, to keep the toolchain minimal.
-- **popup.js stays thin:** All business logic lives in background. The popup's only job is to ask "what workspaces exist for my windowId?" and render the answer.
-
-## Architectural Patterns
-
-### Pattern 1: Per-Window Switching Lock
-
-**What:** Replace the single `isSwitching` boolean with a `Map<windowId, boolean>` stored in `storage.session`. Each window gets its own lock so a switch in Window A cannot block saves in Window B.
-
-**When to use:** Any time tab events fire — check `isSwitching[tab.windowId]` not a global flag.
-
-**Trade-offs:** Slightly more complex lookup, but eliminates silent corruption when multiple windows are open simultaneously.
-
-**Example:**
-```javascript
-// On background init — restore from session or default to empty
-async function getSwitchingLocks() {
-  const { switchingLocks } = await browser.storage.session.get({ switchingLocks: {} });
-  return switchingLocks;
-}
-
-async function setWindowLock(windowId, value) {
-  const locks = await getSwitchingLocks();
-  locks[windowId] = value;
-  await browser.storage.session.set({ switchingLocks: locks });
-}
-
-async function isWindowSwitching(windowId) {
-  const locks = await getSwitchingLocks();
-  return !!locks[windowId];
-}
-```
-
-**Note:** `storage.session` is available from Firefox 115+ (HIGH confidence, MDN verified). Since this is a new milestone feature, targeting Firefox 115+ minimum is safe.
+**Domain:** Firefox WebExtension — tab/workspace manager (v1.1 integration patterns)
+**Researched:** 2026-03-23
+**Confidence:** HIGH (based on official MDN docs + direct source code analysis)
 
 ---
 
-### Pattern 2: Window-to-Workspace Mapping in storage.session
+## Context: This Is an Integration Research Document
 
-**What:** Maintain a `Map<windowId, workspaceId>` in `storage.session`. This replaces the single `activeWorkspaceId` global in storage.sync. When the background wakes, it restores from session (survives background unloading in MV3; cleared on browser close, which triggers re-initialization).
+The v1.0 architecture is already built and verified. This document answers three focused questions for the v1.1 milestone:
 
-**When to use:** Every workspace operation that is window-scoped: save, switch, badge update, popup render.
+1. How does context menu tab movement integrate with the existing background modules?
+2. How does new-window workspace opening integrate?
+3. How should the circular dependency between state.js and workspaces.js be resolved?
 
-**Trade-offs:** `storage.session` is cleared on browser close. On startup, the extension must re-initialize window mapping from stored workspace data (which window has which tabs). This requires a reconciliation step in `onStartup`.
-
-**Example:**
-```javascript
-// Stored in storage.sync (persists across sessions):
-// { workspaces: [...], windowWorkspaces: { "123": "ws_id_A", "456": "ws_id_B" } }
-//
-// Stored in storage.session (survives background unloads, not browser restart):
-// { activeByWindow: { "123": "ws_id_A", "456": "ws_id_B" } }
-
-async function getActiveWorkspaceForWindow(windowId) {
-  const { activeByWindow } = await browser.storage.session.get({ activeByWindow: {} });
-  return activeByWindow[windowId] ?? null;
-}
-```
-
-**Key distinction:** `storage.sync` stores the canonical truth (what workspace is assigned to each window); `storage.session` stores the runtime cache for fast background access without a sync round-trip.
+Refer to the original ARCHITECTURE.md content for foundational patterns (per-window switching lock, atomic switch with rollback, storage.sync/session/local layers). This document extends those patterns — it does not replace them.
 
 ---
 
-### Pattern 3: Atomic Tab Switch with Rollback
+## Existing Module Dependency Graph
 
-**What:** Capture the current tab list as a snapshot before starting a switch. If tab creation fails partially, restore the snapshot rather than leaving mixed state.
+Current imports, as shipped in v1.0:
 
-**When to use:** Every call to `switchWorkspace()`.
+```
+index.js
+  ├── state.js (throttledSave, removeWindowEntry, getWindowMap)
+  ├── workspaces.js (initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces)
+  ├── messaging.js (handleMessage)
+  └── sync.js (migrateIfNeeded, getWorkspaces)
 
-**Trade-offs:** Requires one extra storage write at the start of every switch. The benefit is reliable rollback — user never ends up with an empty window.
+state.js
+  └── workspaces.js (saveCurrentWorkspace)   ← creates the circular dependency
 
-**Example:**
-```javascript
-async function switchWorkspace(windowId, targetId) {
-  await setWindowLock(windowId, true);
-  const snapshot = await browser.tabs.query({ windowId });
+workspaces.js
+  ├── state.js (getSessionState, setSessionState, getWindowMap, setWindowEntry)
+  └── sync.js (getWorkspaces, saveWorkspaces, deleteWorkspaceFromSync)
 
-  try {
-    // 1. Save current workspace tabs
-    // 2. Create all target tabs (collect created IDs)
-    // 3. Only remove old tabs after ALL new tabs confirmed created
-    // 4. Update storage.sync with new windowId→workspaceId mapping
-    // 5. Update badge
-    return { success: true };
-  } catch (err) {
-    // Rollback: if any new tabs were created, close them
-    // The old tabs are still open because we haven't closed them yet
-    // (Step 3 only runs after ALL of Step 2 succeeds)
-    await closeCreatedTabs(createdTabIds);
-    console.error('[Workspaces] Switch failed, rolled back:', err);
-    return { success: false, error: err.message };
-  } finally {
-    await setWindowLock(windowId, false);
-  }
-}
+messaging.js
+  ├── workspaces.js (switchWorkspace, createWorkspace, deleteWorkspace,
+  │                  updateWorkspace, saveCurrentWorkspace, assignWorkspace, COLORS)
+  ├── state.js (getWindowMap)
+  └── sync.js (getWorkspaces)
+
+sync.js
+  └── (no internal imports — only browser.storage.* APIs)
 ```
 
-**Implementation note:** The existing code already creates tabs before closing old ones. The gap is that it closes old tabs even when some new tabs failed to create. Fix: only call `browser.tabs.remove(oldTabIds)` after `createdTabIds.length === tabsToCreate.length`.
+The circular dependency: `state.js` imports `saveCurrentWorkspace` from `workspaces.js`, while `workspaces.js` imports `getSessionState`, `setSessionState`, `getWindowMap`, and `setWindowEntry` from `state.js`. ES modules tolerate this at runtime because by the time `throttledSave()` executes, both modules are fully initialized — but it is fragile: any change that causes one module to call the other before initialization completes will fail silently.
 
 ---
 
-### Pattern 4: storage.sync with local Fallback
+## Feature 1: Resolve Circular Dependency (state.js ↔ workspaces.js)
 
-**What:** Try `storage.sync.set()`. On quota error (catches `QUOTA_BYTES` or `QUOTA_BYTES_PER_ITEM` exceeded), fall back to `storage.local.set()` for that operation and persist a flag indicating which backend is in use.
+### Root Cause
 
-**When to use:** Every write operation.
+`state.js` calls `saveCurrentWorkspace()` (from workspaces.js) inside `throttledSave()`. This is the only reason state.js depends on workspaces.js. Everything else in state.js is pure storage session CRUD with no knowledge of workspace logic.
 
-**Trade-offs:** Requires every read to check which backend is in use. Sync quota is tight: 100KB total, 8192 bytes per item. A workspace with 30 tabs at ~200 bytes each = ~6KB per workspace object — approaches the per-item limit at high tab counts. Splitting large workspaces across multiple keys adds complexity but solves the problem.
+### Solution: Extract `throttledSave` into index.js
 
-**Storage key design to stay under 8192 bytes per item:**
-```javascript
-// Workspace metadata (no tabs) — stored in sync
-// Key: "ws_meta"
-// Value: [{ id, name, color, createdAt, windowAssignment }]
+`throttledSave` does not belong in state.js. Its job is to orchestrate: check the window map, check the switching lock, then call `saveCurrentWorkspace`. That is coordinator logic, not state storage logic.
 
-// Tab data split by workspace — stored in sync if small, local if large
-// Key: "ws_tabs_{workspaceId}"
-// Value: [{ url, title, pinned, favIconUrl }]
-// If this exceeds 8192 bytes, store in local with key "ws_tabs_local_{workspaceId}"
+Move `throttledSave` from `state.js` into `index.js`, where it is the only caller. The dependency graph after the move:
 
-// Active window mapping
-// Key: "window_workspaces"
-// Value: { "windowId1": "wsId1", "windowId2": "wsId2" }
+```
+index.js (throttledSave lives here)
+  ├── state.js (getWindowMap, getSessionState, setSessionState,
+  │             removeWindowEntry, setWindowEntry)
+  ├── workspaces.js (saveCurrentWorkspace, initDefaultWorkspace,
+  │                  updateBadge, reclaimWorkspaces)
+  ├── messaging.js (handleMessage)
+  └── sync.js (migrateIfNeeded, getWorkspaces)
+
+state.js
+  └── sync.js (no imports from workspaces.js — circular dependency gone)
+
+workspaces.js
+  ├── state.js (getSessionState, setSessionState, getWindowMap, setWindowEntry)
+  └── sync.js (getWorkspaces, saveWorkspaces, deleteWorkspaceFromSync)
+
+messaging.js
+  ├── workspaces.js
+  ├── state.js
+  └── sync.js
 ```
 
-**Example fallback pattern:**
+state.js becomes a pure session-storage module with no dependency on workspaces.js. The circular dependency is eliminated.
+
+**Change scope:** Move the `throttledSave` function and its `THROTTLE_MS` constant from state.js to index.js. Update the export list in state.js (remove `throttledSave`). Update imports in index.js (add `getSessionState` or pass through parameters as needed). No behavior change.
+
+---
+
+## Feature 2: Fix validateWorkspaceData Not Called on readFromLocal()
+
+### Location
+
+In `sync.js`, `readFromLocal()` returns raw storage data without validation:
+
 ```javascript
-async function storageSyncSetWithFallback(key, value) {
-  try {
-    await browser.storage.sync.set({ [key]: value });
-  } catch (err) {
-    if (err.message?.includes('QUOTA') || err.message?.includes('quota')) {
-      console.warn('[Workspaces] sync quota exceeded for key:', key, '— using local');
-      await browser.storage.local.set({ [key]: value, [`${key}_in_local`]: true });
-    } else {
-      throw err;
+async function readFromLocal() {
+  const result = await browser.storage.local.get('workspaces')
+  return Array.isArray(result.workspaces) ? result.workspaces : []
+}
+```
+
+`validateWorkspaceData()` lives in `workspaces.js`. sync.js does not and should not import from workspaces.js (that would introduce another dependency direction issue and validation logic does not belong in the storage layer).
+
+### Solution: Move validateWorkspaceData to sync.js, or call it at the getWorkspaces() boundary
+
+Two options:
+
+**Option A (preferred): Call validateWorkspaceData() in getWorkspaces(), not in readFromLocal().**
+
+`getWorkspaces()` is the public API surface. Apply validation once at the exit point of sync.js, regardless of whether data came from sync or local. This requires sync.js to either import `validateWorkspaceData` from workspaces.js (bad — wrong direction) or inline the validation logic.
+
+**Option B (recommended): Move validateWorkspaceData() and DEFAULT_WORKSPACE_DATA() from workspaces.js to sync.js.**
+
+Validation of workspace data is fundamentally a concern of the storage layer — it is the contract for what comes out of storage. The function has no dependency on workspaces.js internals (it only works with plain objects). Moving it to sync.js puts it at the right boundary.
+
+After the move, call it in `readFromLocal()` and in `assembleFromSync()` before returning.
+
+**Change scope:** Move `validateWorkspaceData` and `DEFAULT_WORKSPACE_DATA` from workspaces.js to sync.js. Export them from sync.js. Update imports in workspaces.js (import from sync.js instead of defining locally). Call `validateWorkspaceData()` at both exit paths in sync.js: `assembleFromSync()` return and `readFromLocal()` return.
+
+---
+
+## Feature 3: Context Menu "Move to Workspace"
+
+### New API Surface
+
+Firefox's `browser.menus` API (requires `"menus"` permission in manifest.json) supports a `"tab"` context type (Firefox-only, available since Firefox 63). This context fires when the user right-clicks a tab in the tab strip — distinct from right-clicking page content.
+
+**Permission required:** Add `"menus"` to `permissions` in `manifest.json`. The `"tabs"` permission already exists, which is needed to query and move tabs.
+
+**Key events:**
+- `browser.menus.onShown` — fires before menu displays; use to rebuild workspace submenu based on current workspaces
+- `browser.menus.onClicked` — fires when an item is chosen; receives `info.menuItemId` and `tab` (the right-clicked tab)
+
+### Menu Structure
+
+```
+[Right-click tab strip]
+└── Move to Workspace  (parent, context: ["tab"])
+    ├── Workspace A    (child, id: "move-to:{workspaceId}")
+    ├── Workspace B    (child, id: "move-to:{workspaceId}")
+    └── ...
+```
+
+The workspace list changes at runtime. Use `onShown` + `menus.update()` + `menus.refresh()` to rebuild the children on each menu open. Creating a fixed parent and dynamically updating child items on `onShown` is the correct pattern — do not recreate the parent on every show.
+
+**Concurrency safety:** `onShown` handlers that call async APIs (getWorkspaces) must guard against stale updates using an instance counter pattern (see Pattern section below).
+
+### Data Flow: Move Tab
+
+```
+User right-clicks tab → right-clicks "Move to Workspace" → selects "Work"
+    │
+    ▼
+menus.onClicked fires: info.menuItemId = "move-to:abc123", tab = { id: 42, windowId: 7 }
+    │
+    ▼
+background: parse workspaceId from menuItemId
+    │
+    ▼
+background: moveTabToWorkspace(tab.id, workspaceId, tab.windowId)
+    │
+    ├── read windowMap from storage.session
+    ├── find which window owns the target workspace (if any)
+    ├── if target workspace is active in a window:
+    │     browser.tabs.move(tab.id, { windowId: owningWindowId, index: -1 })
+    │     save owning window's workspace (tab added)
+    │     save source window's workspace (tab removed)
+    └── if target workspace is not active anywhere:
+          serialize the tab
+          append to workspace.tabs in storage
+          remove the tab from the current window
+          save current window's workspace
+```
+
+### New Module: background/menus.js
+
+The menu logic (register, rebuild on show, handle click) is self-contained and should not live in index.js (which already handles all browser event listeners) or messaging.js (which handles popup messages). Create `src/background/menus.js`.
+
+Responsibilities of `menus.js`:
+- Export `initMenus()` — called once from index.js at startup to register the parent menu item and attach `onShown`/`onClicked` listeners
+- Export `moveTabToWorkspace(tabId, workspaceId, sourceWindowId)` — the core business logic function
+- Imports from: `workspaces.js` (serializeTabs), `sync.js` (getWorkspaces, saveWorkspaces), `state.js` (getWindowMap, setWindowEntry)
+
+index.js calls `initMenus()` at the top level (synchronous registration) so the event listeners are registered before the background can unload.
+
+### Integration with Existing Modules
+
+| Existing Module | Change Required |
+|-----------------|-----------------|
+| `index.js` | Import `initMenus` from `menus.js`, call it at top level |
+| `manifest.json` | Add `"menus"` to `permissions` array |
+| `state.js` | No change (menus.js uses getWindowMap, setWindowEntry — already exported) |
+| `workspaces.js` | Export `serializeTabs` — it is already defined, just not exported |
+| `sync.js` | No change (menus.js uses getWorkspaces, saveWorkspaces — already exported) |
+| `messaging.js` | No change |
+| `popup.js` | No change (context menu is background-only) |
+
+**New file:** `src/background/menus.js`
+
+---
+
+## Feature 4: Open Workspace in New Window
+
+### Behavior Changes
+
+Current: Unassigned windows show a banner with "Assign Here" buttons. Clicking a workspace assigns the current window to it (replaces current tabs, keeps current window).
+
+New behavior:
+- **Unassigned window, clicking a workspace:** Open the workspace in a new window (not the current window). The current window remains unassigned.
+- **Any window, middle-click or Ctrl+click a workspace:** Open the workspace in a new window.
+
+The "Assign Here" button is removed entirely.
+
+### Opening a Workspace in a New Window: API Pattern
+
+`browser.windows.create()` accepts a `url` array parameter. The flow:
+
+```
+openWorkspaceInNewWindow(workspaceId)
+    │
+    ▼
+read workspace from getWorkspaces()
+    │
+    ▼
+check exclusivity: is workspaceId already assigned to an existing window?
+    if yes → focus that window instead (same as current "isInUse" behavior)
+    │
+    ▼
+browser.windows.create({ url: tabUrls, focused: true })
+    │  Note: windows.create only accepts URLs, not full tab objects.
+    │  Pinned state and discarded state must be set after creation.
+    │
+    ▼
+newWindow = returned windows.Window object (tabs array populated)
+    │
+    ▼
+for pinned tabs: browser.tabs.update(tabId, { pinned: true })
+    │  (tabs are created in order — match by index)
+    │
+    ▼
+setWindowEntry(newWindow.id, workspaceId)
+updateBadge(workspace, newWindow.id)
+```
+
+**Limitation of windows.create with URL array:** `windows.create()` does not accept tab option objects — only URL strings. Pinned state, `discarded` flag, and title cannot be set at creation time. Apply pinned state post-creation by iterating `newWindow.tabs` and calling `browser.tabs.update()` on tabs that should be pinned.
+
+**about:newtab handling:** `windows.create()` does not accept `about:newtab` as a URL (it results in an error or is ignored). If the workspace is empty or contains only `about:newtab` entries, create the window without a URL and let Firefox open a default new tab.
+
+### New Message Action: openInNewWindow
+
+The popup needs a new message action to trigger this. Add to messaging.js:
+
+```
+case 'openInNewWindow':
+  return openWorkspaceInNewWindow(msg.workspaceId)
+```
+
+`openWorkspaceInNewWindow` can live in `workspaces.js` (it is a workspace operation that affects tab/window state) or in a new helper. Given it uses `browser.windows.create`, `browser.tabs.update`, `getWindowMap`, `setWindowEntry`, and `updateBadge` — all of which workspaces.js already imports — it belongs in `workspaces.js`.
+
+### Popup Changes
+
+Two interaction paths trigger new-window opening:
+
+**Path 1: Unassigned window clicks workspace**
+
+Currently: calls `onSwitch(ws.id)` → `switchWorkspace` message (which in turn calls `assignWorkspace` behavior)
+New: calls `onOpenInNewWindow(ws.id)` → `openInNewWindow` message
+
+Remove the "Assign Here" button rendering branch. Remove `onAssign()` function. The `activeWorkspaceId === null` branch in renderList now generates items that call `onOpenInNewWindow` instead of `onSwitch`.
+
+**Path 2: Middle-click or Ctrl+click on any workspace item**
+
+Add a `mousedown` or `auxclick` listener to each workspace `<li>`. Check for `e.button === 1` (middle-click) or `(e.button === 0 && e.ctrlKey)`. Call `onOpenInNewWindow(ws.id)`. Stop propagation to prevent the regular click handler from also firing.
+
+### Integration with Existing Modules
+
+| Existing Module | Change Required |
+|-----------------|-----------------|
+| `workspaces.js` | Add `openWorkspaceInNewWindow(workspaceId)` function |
+| `messaging.js` | Add `'openInNewWindow'` case calling `openWorkspaceInNewWindow` |
+| `popup.js` | Remove "Assign Here" button. Replace unassigned-window click path. Add middle/Ctrl+click handler. |
+| `state.js` | No change |
+| `sync.js` | No change |
+| `index.js` | No change |
+| `menus.js` | No change (context menu handles tab movement, not window opening) |
+
+---
+
+## Updated System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     UI Layer (transient)                         │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────┐      │
+│  │  popup.html / popup.js                                  │      │
+│  │  - Sends { action, windowId, ...payload } messages     │      │
+│  │  - Middle/Ctrl+click → openInNewWindow                 │      │
+│  │  - Unassigned window click → openInNewWindow           │      │
+│  └──────────────────────────┬──────────────────────────────┘     │
+└──────────────────────────────│──────────────────────────────────-┘
+                               │ browser.runtime.sendMessage
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  Background Layer (event-driven)                  │
+│                                                                  │
+│  ┌────────────────┐  ┌────────────────┐  ┌──────────────────┐   │
+│  │  messaging.js  │  │  menus.js      │  │  index.js        │   │
+│  │  (popup msgs)  │  │  (tab context  │  │  (tab/window     │   │
+│  │                │  │   menu + move) │  │   events,        │   │
+│  └───────┬────────┘  └───────┬────────┘  │   throttledSave) │   │
+│          │                   │            └────────┬─────────┘   │
+│          └───────────────────┴─────────────────────┘             │
+│                              │                                    │
+│  ┌───────────────────────────▼───────────────────────────────┐   │
+│  │                   workspaces.js                            │   │
+│  │  switchWorkspace, createWorkspace, deleteWorkspace,        │   │
+│  │  updateWorkspace, assignWorkspace, reclaimWorkspaces,      │   │
+│  │  openWorkspaceInNewWindow (NEW), moveTabToWorkspace (NEW)  │   │
+│  │  saveCurrentWorkspace, updateBadge, serializeTabs          │   │
+│  └────────────────────┬──────────────────────────────────────┘   │
+│                        │                                          │
+│          ┌─────────────┴──────────────┐                          │
+│          ▼                            ▼                           │
+│  ┌───────────────┐           ┌────────────────┐                  │
+│  │  state.js     │           │  sync.js       │                  │
+│  │  (session     │           │  (storage      │                  │
+│  │   storage,    │           │   abstraction, │                  │
+│  │   windowMap)  │           │   validation)  │                  │
+│  └───────────────┘           └────────────────┘                  │
+└──────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼ browser.storage.sync / .session / .local
+```
+
+---
+
+## Component Responsibilities (Updated)
+
+| Component | Responsibility | New in v1.1 |
+|-----------|---------------|-------------|
+| `index.js` | Top-level event listeners, lifecycle, `throttledSave` (moved here) | Receives `throttledSave` from state.js |
+| `state.js` | Pure session-storage CRUD: windowMap, sessionState | Loses `throttledSave`, removes workspaces.js dependency |
+| `workspaces.js` | Workspace CRUD, atomic switch, badge, tab serialization | Adds `openWorkspaceInNewWindow`, exports `serializeTabs` |
+| `messaging.js` | Route popup messages to workspace functions | Adds `'openInNewWindow'` case |
+| `sync.js` | Storage abstraction, validation | Gains `validateWorkspaceData`, `DEFAULT_WORKSPACE_DATA` (moved from workspaces.js) |
+| `menus.js` (NEW) | Context menu registration, dynamic rebuild, `moveTabToWorkspace` | Entirely new |
+| `popup.js` | UI rendering, user interactions | Removes "Assign Here", adds middle/Ctrl+click |
+
+---
+
+## Architectural Patterns for New Features
+
+### Pattern 1: Dynamic Context Menu with onShown
+
+**What:** Register a static parent menu item at install/startup. On each `menus.onShown`, fetch current workspaces, update child items, call `menus.refresh()`. Use an instance counter to prevent stale async updates.
+
+**When to use:** Any context menu whose items depend on runtime state (workspace list changes as user creates/deletes).
+
+**Key constraints:**
+- The parent item must exist before `onShown` fires — register it in `browser.runtime.onInstalled` (and re-register on startup via a helper, since onInstalled only fires on install/update, not on every background wake).
+- `menus.create()` for non-persistent backgrounds must be called inside `runtime.onInstalled`. For the startup case (background wakes, menus are gone), check and recreate in `runtime.onStartup` or at the top of index.js.
+- Child items use IDs like `"move-to:{workspaceId}"` — parse with `menuItemId.startsWith("move-to:")`.
+
+**Example:**
+```javascript
+// menus.js
+
+let lastMenuInstance = 0
+let nextMenuInstance = 1
+
+export function initMenus() {
+  browser.menus.create({
+    id: 'ws-move-parent',
+    title: 'Move to Workspace',
+    contexts: ['tab'],
+  })
+
+  browser.menus.onShown.addListener(async (info, tab) => {
+    if (!info.contexts.includes('tab')) return
+
+    const instanceId = nextMenuInstance++
+    lastMenuInstance = instanceId
+
+    const workspaces = await getWorkspaces()
+
+    if (instanceId !== lastMenuInstance) return  // menu closed already
+
+    // Remove old child items
+    const existingChildren = info.menuIds.filter(id =>
+      typeof id === 'string' && id.startsWith('move-to:')
+    )
+    await Promise.all(existingChildren.map(id => browser.menus.remove(id)))
+
+    // Recreate children for current workspaces
+    for (const ws of workspaces) {
+      browser.menus.create({
+        id: `move-to:${ws.id}`,
+        parentId: 'ws-move-parent',
+        title: ws.name,
+        contexts: ['tab'],
+      })
+    }
+
+    browser.menus.refresh()
+  })
+
+  browser.menus.onClicked.addListener(async (info, tab) => {
+    if (!info.menuItemId.startsWith('move-to:')) return
+    const workspaceId = info.menuItemId.slice('move-to:'.length)
+    await moveTabToWorkspace(tab.id, workspaceId, tab.windowId)
+  })
+}
+```
+
+**Trade-off:** Remove + recreate children on each show is slightly heavier than `update()`, but required because workspace count can change between shows. `menus.update()` cannot add or remove items, only change properties of existing ones.
+
+---
+
+### Pattern 2: windows.create for Tab-Array Workspaces
+
+**What:** Create a new browser window with a URL array from a workspace's tab list. Apply pinned state post-creation. Register the new window in the windowMap.
+
+**When to use:** Any operation that opens a workspace in a new window (unassigned window click, middle-click/Ctrl+click).
+
+**Key constraint:** `windows.create()` takes URL strings only. `about:newtab` is not a valid URL for `windows.create()`. If the workspace is empty or all tabs are `about:newtab`, omit the `url` parameter entirely.
+
+**Example:**
+```javascript
+// workspaces.js
+
+export async function openWorkspaceInNewWindow(workspaceId) {
+  const workspaces = await getWorkspaces()
+  const workspace = workspaces.find(w => w.id === workspaceId)
+  if (!workspace) return { success: false, error: 'Workspace not found' }
+
+  // Exclusive ownership check — if already open, focus instead
+  const windowMap = await getWindowMap()
+  for (const [wid, wsId] of Object.entries(windowMap)) {
+    if (wsId === workspaceId) {
+      await browser.windows.update(Number(wid), { focused: true })
+      return { success: true, focused: true }
     }
   }
+
+  const realUrls = workspace.tabs
+    .filter(t => t.url && !t.url.startsWith('about:'))
+    .map(t => t.url)
+
+  const createProps = realUrls.length > 0 ? { url: realUrls, focused: true } : { focused: true }
+  const newWindow = await browser.windows.create(createProps)
+
+  // Apply pinned state post-creation (windows.create cannot set pinned)
+  const pinnedTabs = workspace.tabs.filter(t => t.pinned)
+  if (pinnedTabs.length > 0 && newWindow.tabs) {
+    for (let i = 0; i < Math.min(pinnedTabs.length, newWindow.tabs.length); i++) {
+      await browser.tabs.update(newWindow.tabs[i].id, { pinned: true })
+    }
+  }
+
+  await setWindowEntry(newWindow.id, workspaceId)
+  updateBadge(workspace, newWindow.id)
+
+  return { success: true }
 }
 ```
 
 ---
 
-### Pattern 5: MV3 Non-Persistent Background Event Registration
+### Pattern 3: Circular Dependency Resolution via Responsibility Migration
 
-**What:** All event listeners registered synchronously at module top-level (not inside async functions or conditional blocks). State that was previously in global variables must be read from `storage.session` at the start of each event handler.
+**What:** When module A imports from module B and module B imports from module A, identify which import is "out of place" by asking: "Is this function at home in this module given its stated responsibility?" Move the function to the module where it is conceptually at home.
 
-**When to use:** Required for Manifest V3 compliance. Firefox MV3 uses non-persistent event pages (not Chrome-style service workers — Firefox uses `background.scripts` array, not `background.service_worker`).
+**When to use:** Any time a circular dependency exists in the background module graph.
 
-**Trade-offs:** Slight latency on first wake (storage.session read). The solution is to design event handlers to be idempotent — safe to run on re-wake from unloaded state.
+**For this codebase:**
+- `throttledSave` belongs in index.js (it coordinates save timing, not storage state)
+- `validateWorkspaceData` belongs in sync.js (it validates what comes out of storage)
 
-**Example:**
-```javascript
-// manifest.json (MV3 Firefox)
-// "background": { "scripts": ["background.js"], "persistent": false }
-// "action": { "default_popup": "popup/popup.html" }   (not "browser_action")
-
-// background.js — listeners at top-level, no async wrapping
-browser.tabs.onCreated.addListener(handleTabCreated);
-browser.windows.onRemoved.addListener(handleWindowRemoved);
-browser.runtime.onMessage.addListener(handleMessage);
-
-// Handlers read session state rather than globals
-async function handleTabCreated(tab) {
-  if (await isWindowSwitching(tab.windowId)) return;
-  debouncedSave(tab.windowId);
-}
-```
-
-**Key Firefox MV3 divergence from Chrome:** Firefox uses `"scripts": [...]` in background, not `"service_worker"`. The `browser.*` namespace works. No need for a polyfill. `browser.browserAction` becomes `browser.action`. [Source: Firefox Extension Workshop MV3 guide]
+**Trade-off:** None. Circular dependencies in ES modules work at runtime but signal a design boundary violation that becomes a maintenance hazard. Resolving them creates clean, testable boundaries.
 
 ---
 
-## Data Flow
+## Build Order for v1.1 Milestone
 
-### Workspace Switch Flow (multi-window aware)
-
-```
-User clicks workspace in popup
-    │
-    ▼
-popup.js: windows.getCurrent() → get windowId
-    │
-    ▼
-popup.js: sendMessage({ action: 'switchWorkspace', windowId, targetId })
-    │
-    ▼
-background.js message router: validate sender (moz-extension URL check)
-    │
-    ▼
-switchWorkspace(windowId, targetId)
-    │
-    ├─ setWindowLock(windowId, true)          [storage.session write]
-    │
-    ├─ snapshot = tabs.query({ windowId })    [capture current tabs]
-    │
-    ├─ save current workspace tabs            [storage.sync write]
-    │
-    ├─ create new tabs one-by-one             [browser.tabs.create]
-    │   └─ on any failure: close created, return { success: false }
-    │
-    ├─ remove old tabs (only if all created)  [browser.tabs.remove]
-    │
-    ├─ update windowWorkspaces mapping        [storage.sync write]
-    │
-    ├─ updateBadge(windowId, workspace)       [browser.action.setBadgeText windowId]
-    │
-    └─ setWindowLock(windowId, false)         [storage.session write]
-```
-
-### Auto-Save Flow (window-scoped)
+Dependencies between the features determine safe implementation order:
 
 ```
-Tab event fires (onCreated/onRemoved/onUpdated/onMoved)
-    │
-    ▼
-Filter: tab.windowId known?  AND  isWindowSwitching(windowId) == false?
-    │
-    ▼
-debouncedSave(windowId) — per-window timeout map
-    │  (400ms debounce, keyed by windowId)
-    ▼
-saveWindowWorkspace(windowId)
-    ├─ tabs.query({ windowId })
-    ├─ serializeTabs()
-    └─ storage write: update ws_tabs_{activeWorkspaceForWindow(windowId)}
+1. Resolve circular dependency (state.js ↔ workspaces.js)
+   └── Move throttledSave to index.js
+   └── Zero behavior change, just module restructuring
+   └── Required first: all other features touch these modules
+
+2. Fix validateWorkspaceData gap (sync.js)
+   └── Move validateWorkspaceData + DEFAULT_WORKSPACE_DATA to sync.js
+   └── Call at readFromLocal() and assembleFromSync() exit points
+   └── Independent of features 3 and 4
+
+3. Context menu: "Move to Workspace" (menus.js NEW)
+   └── Requires: manifest.json permission, serializeTabs exported from workspaces.js
+   └── New file — does not modify existing files beyond index.js and manifest.json
+
+4. Open in new window (workspaces.js + messaging.js + popup.js)
+   └── Requires: workspaces.js stable (done in step 1)
+   └── Last because it touches popup.js (more test surface)
 ```
 
-### Popup Initialization Flow
-
-```
-Popup opens
-    │
-    ▼
-popup.js: windows.getCurrent() → windowId
-    │
-    ▼
-sendMessage({ action: 'getState', windowId })
-    │
-    ▼
-background: read storage.sync workspaces + activeByWindow[windowId]
-    │
-    ▼
-return { workspaces, activeWorkspaceId: activeByWindow[windowId] }
-    │
-    ▼
-popup.js: renderList() — shows all workspaces, highlights active one for this window
-```
-
-### Key State Flows
-
-1. **Window opened:** `windows.onCreated` → assign first available workspace (or create new one) → update `windowWorkspaces` in storage.sync + `activeByWindow` in storage.session → update badge for that window.
-
-2. **Window closed:** `windows.onRemoved` → save that window's workspace tabs → remove `windowId` from `activeByWindow` in session (workspace stays in sync for future use).
-
-3. **Browser restart:** `runtime.onStartup` → `storage.session` is empty → read `windowWorkspaces` from storage.sync → reconcile with currently open windows (some may be stale) → re-populate `activeByWindow` in session.
-
-4. **Background unloaded (MV3 idle):** `storage.session` persists across background wake/sleep cycles. On next event, handlers read session state normally.
-
-## Scaling Considerations
-
-This extension runs locally in a single browser. "Scaling" means number of workspaces and windows.
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| 1-5 windows, 1-20 workspaces | Current approach works. No changes. |
-| 5-10 windows, 20-50 workspaces | Monitor storage.sync quota. At 50 workspaces × 6KB tabs data = 300KB — exceeds sync quota. Split tabs to local storage for large workspaces. |
-| 50+ workspaces | Implement workspace archiving. storage.local has 5MB+ limit (with unlimitedStorage permission). Metadata stays in sync, large tab arrays move to local. |
-
-### Scaling Priorities
-
-1. **First bottleneck:** `storage.sync` per-item 8192 byte limit. A workspace with 30+ tabs and long URLs hits this. Fix: store tab arrays under separate keys (`ws_tabs_{id}`), not nested inside workspace objects.
-
-2. **Second bottleneck:** Total sync quota (100KB). At ~4KB per workspace (30 tabs), you hit the limit around 25 workspaces. Fix: move `ws_tabs_{id}` to `storage.local` if its size exceeds a threshold (e.g., 6000 bytes). Metadata (name, color, createdAt) stays in sync at ~100 bytes per workspace.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Global `activeWorkspaceId` + `isSwitching`
-
-**What people do:** Store a single `activeWorkspaceId` string and a single `isSwitching` boolean in module scope or storage. (This is the current code.)
-
-**Why it's wrong:** Multiple windows. Window A switching workspaces sets `isSwitching = true` globally, which blocks auto-save in Window B. Window A's `activeWorkspaceId` overwrites Window B's, so saving Window B's tabs updates the wrong workspace. Data corruption is silent.
-
-**Do this instead:** Key everything by `windowId`. `isSwitching` becomes `switchingLocks: { [windowId]: boolean }` in `storage.session`. `activeWorkspaceId` becomes `activeByWindow: { [windowId]: workspaceId }` also in `storage.session` (with `windowWorkspaces` as the persistent backup in `storage.sync`).
+Steps 2 and 3 are independent of each other and can be done in either order. Step 1 must precede steps 3 and 4 because both touch workspaces.js and state.js. Step 4 touches the most files (workspaces.js, messaging.js, popup.js, popup.css likely) and should be last.
 
 ---
 
-### Anti-Pattern 2: Save Current State Before Confirming New Tabs Exist
+## Data Flow Changes
 
-**What people do:** Save the current workspace's tab list first, then try to create new tabs. If tab creation fails, the saved tabs are already overwritten.
+### Move Tab Flow (new)
 
-**Why it's wrong:** If `browser.tabs.create()` throws for any reason (invalid URL, browser limit), the old workspace tabs are already gone from storage. The user loses their tab history with no recovery path.
+```
+User right-clicks tab in tab strip → "Move to Workspace" → "Work"
+    │
+    ▼
+menus.onClicked: { menuItemId: "move-to:abc123", tab: { id: 42, windowId: 7 } }
+    │
+    ▼
+menus.js: moveTabToWorkspace(tabId=42, workspaceId="abc123", sourceWindowId=7)
+    │
+    ├── getWorkspaces() — find target workspace
+    ├── getWindowMap() — find if target workspace is active somewhere
+    │
+    ├── [if target is active in window W]
+    │     browser.tabs.move(42, { windowId: W, index: -1 })
+    │     saveCurrentWorkspace(W)          [tab now in target window]
+    │     saveCurrentWorkspace(7)          [tab removed from source window]
+    │
+    └── [if target is not active anywhere]
+          find workspace.tabs index for this workspace
+          serialize the tab → append to workspace.tabs
+          saveWorkspaces(workspaces)
+          browser.tabs.remove(42)
+```
 
-**Do this instead:** Snapshot current tabs at switch start but do NOT write to storage until all new tabs are confirmed created. The write order is: (1) create all new tabs, (2) verify count matches, (3) write tab snapshot to storage, (4) remove old tabs.
+### Open in New Window Flow (new)
 
----
-
-### Anti-Pattern 3: Storing All Workspace Data Under One Storage Key
-
-**What people do:** Store `{ workspaces: [{ id, name, color, tabs: [...] }], activeWorkspaceId }` as a single object under one key.
-
-**Why it's wrong:** The 8192 byte per-item limit in `storage.sync` will be hit as soon as a workspace grows beyond ~30 tabs. The entire `set()` call fails with a quota error, losing all changes for all workspaces.
-
-**Do this instead:** Split storage into at least two keys per workspace: `ws_meta` (all workspace metadata without tabs, safely under 8192 bytes for dozens of workspaces) and `ws_tabs_{id}` (tab array for each workspace individually). If a single workspace's tab array exceeds 6KB, store it in `storage.local` and set a marker flag in sync.
-
----
-
-### Anti-Pattern 4: Using `currentWindow: true` in Background Tab Queries
-
-**What people do:** Call `browser.tabs.query({ currentWindow: true })` in background script handlers.
-
-**Why it's wrong:** In a background script (not a popup), `currentWindow` resolves to the most recently focused window — which may not be the window that triggered the tab event. When handling `tabs.onCreated`, the created tab includes its `windowId` on the event object itself. Using `currentWindow` can silently query the wrong window's tabs.
-
-**Do this instead:** Always use explicit `windowId` from the event object: `browser.tabs.query({ windowId: tab.windowId })`.
-
----
-
-### Anti-Pattern 5: `persistent: true` Background in MV3
-
-**What people do:** Attempt to keep the old MV2 persistent background behavior by setting `"persistent": true` in manifest.json.
-
-**Why it's wrong:** MV3 ignores this flag — all MV3 backgrounds are non-persistent in Firefox. Relying on global variables for state will cause subtle failures when the background is unloaded after idle periods. AMO requires MV3 for new submissions.
-
-**Do this instead:** Move all state that must survive background unloads to `storage.session` (for session-scoped, in-memory state) or `storage.sync`/`storage.local` (for persistent state). Design handlers to read state from storage at the start rather than assuming in-memory globals are current.
+```
+User clicks workspace in unassigned window popup
+ OR middle-clicks workspace in any window popup
+    │
+    ▼
+popup.js: sendMessage({ action: 'openInNewWindow', workspaceId, windowId: currentWindowId })
+    │
+    ▼
+messaging.js: case 'openInNewWindow' → openWorkspaceInNewWindow(workspaceId)
+    │
+    ▼
+workspaces.js: openWorkspaceInNewWindow(workspaceId)
+    ├── exclusivity check → focus if already open
+    ├── browser.windows.create({ url: [...realUrls] })
+    ├── post-creation: browser.tabs.update for pinned tabs
+    ├── setWindowEntry(newWindow.id, workspaceId)
+    └── updateBadge(workspace, newWindow.id)
+```
 
 ---
 
 ## Integration Points
 
-### External Services
+### New API Permission
 
-None. The extension is intentionally self-contained with no external service dependencies.
+| Manifest Change | Reason |
+|-----------------|--------|
+| Add `"menus"` to `permissions` | Required for `browser.menus` API (context menu) |
 
-### Internal Boundaries
+### New Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| popup.js → background.js | `browser.runtime.sendMessage({ action, windowId, ...payload })` | Popup must include `windowId` in every message. Background validates sender URL is `moz-extension://...popup.html`. |
-| background.js → storage.sync | `browser.storage.sync.get/set` | Used for workspace metadata, tab arrays (if small), and window→workspace mapping. |
-| background.js → storage.session | `browser.storage.session.get/set` | Used for per-window switching locks and `activeByWindow` runtime cache. Available Firefox 115+. |
-| background.js → storage.local | `browser.storage.local.get/set` | Fallback for tab arrays exceeding 8192 bytes, or when sync is unavailable. |
-| background.js → browser.tabs | `tabs.query`, `tabs.create`, `tabs.remove` | All calls scoped by explicit `windowId`, never `currentWindow: true` in background. |
-| background.js → browser.windows | `windows.onCreated`, `windows.onRemoved`, `windows.onFocusChanged`, `windows.getAll` | Used to initialize per-window state and clean up on window close. |
-| background.js → browser.action | `action.setBadgeText({ text, windowId })`, `action.setBadgeBackgroundColor({ color, windowId })` | MV3 `browser.action` API supports per-window badge via `windowId` parameter. |
+| `index.js → menus.js` | `initMenus()` called at top-level | Registers context menu and its event listeners |
+| `menus.js → workspaces.js` | Direct import: `serializeTabs`, `moveTabToWorkspace` | menus.js needs to serialize tabs when moving to inactive workspace |
+| `menus.js → sync.js` | Direct import: `getWorkspaces`, `saveWorkspaces` | Read workspace list for menu rebuild; write after tab move |
+| `menus.js → state.js` | Direct import: `getWindowMap`, `setWindowEntry` | Find owning window; update map after move |
+| `popup.js → background` | New message `'openInNewWindow'` | Replaces "Assign Here" flow and handles middle/Ctrl+click |
 
-**Critical boundary note on `browser.action` badge:** The MV3 `browser.action.setBadgeText()` API accepts a `windowId` parameter (in addition to `tabId`), allowing per-window badge text. This means each window can independently display its active workspace initial without interference. [HIGH confidence — MDN verified.]
+### Boundaries That Do Not Change
 
-## Sources
-
-- [MDN: storage.sync quota limits](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync)
-- [MDN: storage.session](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/session)
-- [MDN: Background scripts (MV3 non-persistent model)](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts)
-- [MDN: windows.getCurrent() — popup context behavior](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/getCurrent)
-- [MDN: tabs.query() — windowId parameter](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/query)
-- [MDN: windows API — onCreated/onRemoved/onFocusChanged](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows)
-- [Firefox Extension Workshop: MV3 Migration Guide](https://extensionworkshop.com/documentation/develop/manifest-v3-migration-guide/) — confirms Firefox uses `scripts` not `service_worker`, `action` not `browser_action`
-- [MDN: runtime.MessageSender](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/MessageSender) — sender URL for validation
+| Boundary | Reason |
+|----------|--------|
+| `popup.js → 'switchWorkspace'` | Used for assigned window workspace switching — unchanged |
+| `popup.js → 'getState'` | Unchanged — still needed for rendering workspace list |
+| `storage.sync / .session / .local` | No schema changes required for v1.1 features |
 
 ---
 
-*Architecture research for: Firefox WebExtension tab/workspace manager (Simple Workspaces)*
-*Researched: 2026-03-21*
+## Anti-Patterns Specific to New Features
+
+### Anti-Pattern 1: Recreating the Context Menu Parent on Every onShown
+
+**What people do:** Call `browser.menus.remove('ws-move-parent')` then `browser.menus.create(...)` inside `onShown` to get a fresh slate.
+
+**Why it's wrong:** `menus.remove()` is async. By the time it resolves inside an async `onShown` handler, the menu may already be visible. Firefox may display an empty or broken submenu. Timing is unreliable.
+
+**Do this instead:** Create the parent once at startup. In `onShown`, only remove and recreate the child items (which are not yet visible to the user at `onShown` time). The parent is always present.
+
+---
+
+### Anti-Pattern 2: Passing Tab Objects to windows.create
+
+**What people do:** Try to pass full tab objects `{ url, title, pinned, favIconUrl }` to `windows.create()` to preserve all tab properties.
+
+**Why it's wrong:** `windows.create()` only accepts URL strings in its `url` parameter. Passing objects causes the call to fail silently or throw.
+
+**Do this instead:** Extract URL strings for `windows.create()`. Apply pinned state afterward via `browser.tabs.update()`. Accept that `favIconUrl` is not restorable at creation time — the browser fetches it when the tab loads.
+
+---
+
+### Anti-Pattern 3: Moving a Tab Without Saving Source and Target Workspace State
+
+**What people do:** After `browser.tabs.move()` succeeds, only update the target workspace's tab list.
+
+**Why it's wrong:** The source window's workspace still has the old tab in its saved state. The next auto-save will fix it, but there is a window (pun intended) where a crash or background unload between the move and the next auto-save leaves the tab "present" in two workspaces' saved state simultaneously.
+
+**Do this instead:** After `tabs.move()`, explicitly call `saveCurrentWorkspace()` for both the source and target windows before returning.
+
+---
+
+## Sources
+
+- [MDN: menus API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus)
+- [MDN: menus.ContextType — "tab" context (Firefox 63+)](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/ContextType)
+- [MDN: menus.onShown](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/onShown)
+- [MDN: menus.onClicked](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/onClicked)
+- [MDN: windows.create()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/create)
+- Direct source code analysis: src/background/{index,state,workspaces,messaging,sync}.js, src/popup/popup.js
+
+---
+
+*Architecture research for: Firefox WebExtension tab/workspace manager — v1.1 integration*
+*Researched: 2026-03-23*

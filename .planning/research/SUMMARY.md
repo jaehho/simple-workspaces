@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Simple Workspaces — Firefox WebExtension
-**Domain:** Firefox WebExtension tab/workspace management (milestone hardening)
-**Researched:** 2026-03-21
+**Project:** Simple Workspaces — Firefox Extension v1.1
+**Domain:** Firefox WebExtension — tab/workspace management
+**Researched:** 2026-03-23
 **Confidence:** HIGH
 
 ## Executive Summary
 
-Simple Workspaces is an existing Firefox extension that needs to be hardened for AMO publishing. It is not a greenfield project — the core workspace management UI and logic already exists in vanilla JS. The milestone covers five interrelated problem areas: MV3 migration (required for AMO), storage migration from `storage.local` to `storage.sync` (data portability), per-window workspace tracking (correctness), a race condition fix in the workspace switch operation (data integrity), and security hardening (XSS, message validation, color injection). These five areas have strict ordering dependencies: MV3 state-management changes must come first because they affect how all subsequent features store and retrieve state.
+Simple Workspaces v1.1 is an incremental capability milestone on top of a solid v1.0 foundation. The v1.0 architecture — MV3 event page, ES module background split across `index.js`, `state.js`, `workspaces.js`, `messaging.js`, and `sync.js`, storage.sync with chunked schema, storage.session window map, atomic switching with rollback — is already built and verified. This milestone adds three user-facing features: a right-click "Move to Workspace" context menu for tab movement, new-window workspace opening (replacing the confusing "Assign Here" behavior), and middle-click/Ctrl+click modifiers in the popup to open any workspace in a new window. Before those features land, two pieces of tech debt must be resolved: the circular dependency between `state.js` and `workspaces.js`, and the missing `validateWorkspaceData` call on the `readFromLocal()` fallback path.
 
-The recommended approach is to treat this as a hardening milestone with zero new UI features. All work happens in `background.js` and `manifest.json`; `popup.js` gets targeted fixes (innerHTML removal, windowId awareness) but no redesign. The stack stays exactly as-is — vanilla JS, `web-ext`, ESLint — with no added npm dependencies. The key architectural change is replacing the single global `activeWorkspaceId` with a `windowId → workspaceId` map stored in `storage.session`, and replacing the single `isSwitching` boolean with a per-window lock in `storage.session`. Every other change flows from this redesign.
+The recommended approach is to address tech debt first (Phase 1), then add context menu support (Phase 2), then complete new-window workspace opening including popup modifier keys (Phase 3). This sequencing is dictated by module coupling: both the context menu and new-window features touch `workspaces.js` and `state.js`, so resolving the circular dependency first removes fragility before new code is layered on top. All required APIs are built-in Firefox WebExtension APIs — no new npm dependencies, no build pipeline changes, only a `"menus"` permission addition to `manifest.json`.
 
-The primary risk is sequencing: if the storage.sync migration is attempted before the per-item key design is in place, large workspaces will silently fail to save. If per-window tracking is implemented before the MV3 event-page state management is resolved, the new state will corrupt on background unload. The correct order is: (1) MV3 + security, (2) data integrity and race condition fix, (3) multi-window tracking, (4) storage.sync migration with quota fallback. Skipping or reordering these phases creates compounding bugs that are hard to isolate.
+The key implementation risks are: MV3 event page menu item duplication (must use `runtime.onInstalled` for static item registration, not top-level), async race in `menus.onShown` (use the instance ID guard pattern), and the `windows.create()` constraint that it only accepts URL strings — pinned state must be applied post-creation. The exclusive ownership invariant (one workspace, one window at a time) is already enforced by the existing `switchWorkspace` path and must be carried through the new `openWorkspaceInNewWindow` function.
 
 ---
 
@@ -19,169 +19,107 @@ The primary risk is sequencing: if the storage.sync migration is attempted befor
 
 ### Recommended Stack
 
-The existing stack requires no additions. The five change areas use only built-in Firefox WebExtension APIs, all available at the project's declared minimum of Firefox 142. No libraries are needed — the ~1,000-line extension scope makes any framework dependency disproportionate.
+No new npm packages are required. All three new capabilities rely exclusively on native Firefox WebExtension APIs. The only manifest change is adding `"menus"` to the `permissions` array alongside the existing `"tabs"` and `"storage"` entries.
 
-**Core technologies:**
-- `browser.action` (MV3 replacement for `browser.browserAction`) — toolbar badge with per-window `windowId` parameter support
-- `browser.storage.sync` — cross-device workspace persistence via Firefox account (102 KB total, 8 KB/item, 512 items)
-- `browser.storage.session` — in-memory per-window state (`windowId → workspaceId` map, per-window switch locks); 10 MB, cleared on browser close, correct lifetime for volatile window data
-- `browser.storage.local` — fallback when sync quota exceeded; already declared with `unlimitedStorage`
-- `browser.sessions` (`setWindowValue`/`getWindowValue`) — secondary record for window→workspace associations that survive window close/restore within a session
-- `browser.windows` API — window lifecycle events (`onCreated`, `onRemoved`, `onFocusChanged`) for per-window state management
-- `crypto.randomUUID()` — replaces the current collision-prone `genId()` pattern; zero-dependency, Firefox 95+
-- `web-ext` + `addons-linter` — already present; validates MV3 manifest against AMO rules
-
-**Critical version note:** All required APIs are available in Firefox 112+ (storage.session) or earlier, well within the declared project minimum of Firefox 142.
+**Core technologies (new surface area only):**
+- `browser.menus` API (Firefox 55+, `"menus"` permission): Tab strip right-click context menu — the only WebExtension API path for this; `contexts: ["tab"]` is the correct context type
+- `menus.onShown` + `menus.refresh()` (Firefox 60+): Lazy rebuild of workspace submenu — rebuilds only when menu is actually about to appear, avoiding wasteful rebuilds on every workspace write
+- `browser.tabs.query({ highlighted: true, windowId })`: Correct API for getting all multi-selected tabs at context menu click time; the `tab` parameter in `menus.onClicked` gives only the right-clicked tab
+- `browser.tabs.move(tabIds, { windowId, index: -1 })`: Cross-window tab movement; accepts an array of IDs
+- `browser.windows.create({ url: [...] })`: New window from URL array; does NOT accept `about:newtab` URLs; pinned state must be applied after creation via `tabs.update()`
+- Dependency injection via registered callback: Low-risk resolution of the `state.js` ↔ `workspaces.js` circular import — `registerSaveCallback()` in `state.js`, wired in `index.js`; or preferred: move `throttledSave` to `index.js` to eliminate the dependency entirely
 
 ### Expected Features
 
-This milestone is defined by correctness and safety, not new capabilities. The feature landscape divides sharply between P1 gates that block AMO publishing and P2 polish that ships after core hardening.
+**Must have (table stakes for v1.1):**
+- Right-click any tab in the tab strip → "Move to Workspace" submenu listing all workspaces except the currently active one — all comparable extensions (Simple Tab Groups, FoxyTab, Tab Manager Plus, Tabby) have this
+- Multi-selected tab support in "Move to Workspace" — Firefox supports Ctrl+click tab multi-select; users expect bulk operations to respect the selection
+- Click workspace in unassigned window → opens workspace in a new window, replacing the "Assign Here" button — the current "Assign Here" concept requires users to understand the unassigned-window mental model; opening in a new window is the obvious, intuitive action
+- Fix `validateWorkspaceData` missing from `readFromLocal()` fallback path — silent data corruption risk on every storage.sync failure
 
-**Must have — AMO publishing gates:**
-- Manifest V3 migration (`manifest_version: 3`, `action` key, non-persistent background) — AMO will not accept MV2 for new submissions
-- Remove `innerHTML` for SVG icons in popup — blocks Mozilla security review
-- Add message sender validation in `onMessage` handler — blocks Mozilla security review
-- Color value validation to prevent CSS injection from stored workspace data
+**Should have (differentiators):**
+- Middle-click workspace item in popup → open in new window — most comparable extensions do not offer this modifier shortcut
+- Ctrl+click workspace item in popup → open in new window — same shortcut for keyboard-dominant users
+- Color indicator (Unicode ● character) prepended to workspace names in context menu items — competitors show plain text; colored dots make workspaces identifiable at a glance (CSS color in context menus is not possible via WebExtension API)
 
-**Must have — data integrity:**
-- Fix race condition in `switchWorkspace()`: snapshot → create all tabs → verify count → delete old tabs → commit storage (current code writes storage before confirming new tabs exist)
-- Rollback on partial tab creation failure (restore pre-switch snapshot if any tab creation fails)
-- Storage schema validation on every read with corruption recovery (reset to default if data is malformed)
-
-**Must have — correctness:**
-- Per-window `activeWorkspaceId` tracking: replace global with `windowId → workspaceId` map in `storage.session`
-- Per-window `isSwitching` lock replacing the global boolean
-- Popup reads its own `windowId` via `windows.getCurrent()` and sends it in every message
-
-**Should have — data portability (v1.x, ship after core hardening):**
-- `storage.sync` migration with per-workspace key design (`workspace:{id}`) to avoid the 8,192-byte per-item limit
-- `getBytesInUse()` quota monitoring with graceful `storage.local` fallback
-- User-visible error notification when switch fails
-
-**Defer to v2+:**
-- Right-click "Move tab to workspace" context menu
-- Workspace search/quick-switch via address bar
-- Keyboard shortcut for workspace switcher
-
-**Anti-features to avoid:**
-- `tabs.hide`/`tabs.show` approach (requires extra user-facing browser permission warning, many edge cases with pinned/active tabs)
-- Drag-and-drop between workspaces (no stable DnD API in extension popups)
-- Tab grouping within workspaces (competes with Firefox native Tab Groups; undermines the extension's simplicity)
-- Cloud sync beyond Firefox Sync (requires backend infrastructure outside scope)
+**Defer (not in this milestone):**
+- Workspace search or address bar quick-switch
+- Keyboard shortcuts
+- Import/export
 
 ### Architecture Approach
 
-The architecture stays flat and single-file for background logic. No module bundler or structural reorganization is needed — the scope is small enough that well-commented sections within `background.js` provide sufficient organization. The critical change is replacing every global state variable with keyed, window-scoped state in `storage.session`, and ensuring all event listeners are registered synchronously at top-level (required for MV3 non-persistent event pages).
+The v1.1 architecture extends the existing module graph minimally. One new module is added (`background/menus.js`), `throttledSave` migrates from `state.js` to `index.js` to eliminate the circular dependency, and `validateWorkspaceData` migrates from `workspaces.js` to `sync.js` so it applies to all storage read paths. All other modules change only at specific integration points.
 
-**Major components and their new responsibilities:**
-1. `manifest.json` — MV3 format: `"action"` key, `"background": { "scripts": ["background.js"] }`, `"sessions"` permission added, `"persistent": true` removed
-2. `background.js` (message router) — validates sender URL (`moz-extension://`), whitelists action names, passes `windowId` from every popup message to operation handlers
-3. `background.js` (window tracker) — maintains `windowId → workspaceId` map in `storage.session`; per-window `switchingLocks` map also in `storage.session`; rebuilds from `storage.sync` on `runtime.onStartup`
-4. `background.js` (workspace ops) — `switchWorkspace(windowId, targetId)` with snapshot-before-write and rollback; all `tabs.query` calls use explicit `windowId` not `currentWindow: true`
-5. `background.js` (tab events) — debounce keyed by `windowId`; ignores events when window's switch lock is true; filters `WINDOW_ID_NONE` from `windows.onFocusChanged`
-6. `popup.js` — reads `windowId` via `windows.getCurrent()`, includes `windowId` in all messages, renders workspace list for its own window only
-7. Storage layer — `storage.sync` for workspace metadata/tabs (per-workspace keys), `storage.session` for runtime window state, `storage.local` as sync fallback
-
-**Key pattern — window-scoped state in `storage.session`:**
-```
-{ activeByWindow: { "42": "ws-id-A", "99": "ws-id-B" } }
-{ switchingLocks: { "42": false, "99": true } }
-```
-This replaces global `activeWorkspaceId` and `isSwitching`. Every handler reads these at the start of execution rather than trusting module-scope variables that reset when the background page unloads.
+**Major components (updated for v1.1):**
+1. `index.js` — Top-level event listeners, lifecycle; gains `throttledSave` (moved from `state.js`); calls `initMenus()` from new `menus.js`
+2. `state.js` — Pure session-storage CRUD (windowMap, sessionState); loses `throttledSave` and its dependency on `workspaces.js`; circular dependency eliminated
+3. `workspaces.js` — Workspace CRUD, atomic switch, badge, tab serialization; gains `openWorkspaceInNewWindow()`; exports `serializeTabs`; loses `validateWorkspaceData` (moves to `sync.js`)
+4. `sync.js` — Storage abstraction; gains `validateWorkspaceData` and `DEFAULT_WORKSPACE_DATA` (moved from `workspaces.js`); applies validation at both `readFromLocal()` and `assembleFromSync()` exit points
+5. `messaging.js` — Popup message routing; adds `'openInNewWindow'` case
+6. `menus.js` (NEW) — Context menu registration (`initMenus()`), dynamic `onShown` rebuild with instance ID guard, `moveTabToWorkspace()` business logic
+7. `popup.js` — Removes "Assign Here" button and `onAssign()` handler; replaces unassigned-window click path with `openInNewWindow` dispatch; adds `auxclick` listener for middle-click and Ctrl+click modifier check in existing `click` handler
 
 ### Critical Pitfalls
 
-1. **Global in-memory state resets silently in MV3 non-persistent background** — `isSwitching` and `saveTimeout` become stale defaults when the background unloads between events. Move all cross-event state to `storage.session`. Replace `setTimeout` debounce with `browser.alarms` if the debounce needs to survive background unloads (or restructure so it doesn't need to). Register all event listeners synchronously at top-level.
+1. **MV3 menu item duplication on background reload** — Calling `menus.create()` at the top level of the background script in a non-persistent event page causes duplicate menu entries to accumulate on every background reload. Register the static parent item inside `runtime.onInstalled` only; register `menus.onClicked` at the top level (it must survive reloads).
 
-2. **`storage.sync` 8,192-byte per-item limit breaks tab-rich workspaces** — A naive 1:1 swap of `.local` for `.sync` will fail silently for any workspace with 20+ tabs. The data model must change to per-workspace keys (`workspace:{id}`) before the storage area is changed. Test with a 40-tab workspace; confirm no `QuotaExceededError`.
+2. **Async race in `menus.onShown`** — Awaiting `getWorkspaces()` inside `onShown` then calling `menus.refresh()` can operate on a menu the user has already dismissed. Use the MDN-recommended instance ID guard: assign an incrementing ID at the start of each `onShown` invocation; check it is still the latest before calling `refresh()`.
 
-3. **`browser_specific_settings.gecko.id` missing causes sync to fail silently** — Without a stable extension ID, sync data is written under an ephemeral ID and is never associated across devices or reinstalls. This must be set in `manifest.json` before the first `storage.sync` write. The extension already has this set (`simple-workspaces@jaehho`) — verify it is present in the MV3 manifest and retained throughout migration.
+3. **`windows.create()` URL-only constraint** — The API only accepts URL strings, not tab objects. `about:newtab` URLs are rejected and must be filtered before the call (omitting them lets Firefox default to a new tab). Pinned state cannot be set at creation time and must be applied post-creation via `browser.tabs.update()` for each pinned tab.
 
-4. **`tabs.query({ currentWindow: true })` resolves to the wrong window in background** — In background scripts, `currentWindow` means the most recently focused window, not the window the event came from. With multi-window support, this silently overwrites the wrong workspace on every debounced save. Replace every occurrence with `tabs.query({ windowId: specificWindowId })` using the windowId captured from the originating event.
+4. **Circular dependency `state.js` ↔ `workspaces.js`** — Currently latent (functions work at runtime due to hoisting), but fragile. Adding new imports that change module evaluation order can surface `undefined` errors. Resolve before adding any code that touches either module.
 
-5. **`windows.onFocusChanged` fires `WINDOW_ID_NONE` spuriously on Windows/Linux** — On non-macOS platforms, every window switch fires `WINDOW_ID_NONE` before the new window's ID. Code that triggers auto-saves or state updates on this event will corrupt tracking state. Treat `WINDOW_ID_NONE` as a no-op; only update the active window pointer on real window IDs.
+5. **Missing validation on `readFromLocal()` fallback** — `validateWorkspaceData()` is not called when the sync path fails and `storage.local` is used instead. Corrupted local data (missing `tabs` array, null `id`) reaches workspace logic unvalidated. Fix by moving `validateWorkspaceData` to `sync.js` and calling it at both read exit points.
 
-6. **No rollback leaves users with empty or mixed windows on failed switches** — If `browser.tabs.create()` fails mid-loop, the current code still removes old tabs. The fix requires: capture snapshot before switch, create all new tabs, verify count equals expected, only then remove old tabs. If creation fails, close any partially-created tabs and keep old tabs open.
+6. **`auxclick` vs `click` for middle-click** — The standard `click` event does not fire for middle-button clicks in Firefox. Use `auxclick` with `e.button === 1`. Call `e.preventDefault()` to suppress the browser's autoscroll behavior inside the popup.
+
+7. **Ctrl+click must not call `switchWorkspace`** — The click handler must branch before dispatching to `onSwitch()`. If `switchWorkspace` runs with Ctrl held, it replaces the current window's tabs before the new window opens. Check modifier keys first and dispatch to a completely separate `onOpenInNewWindow()` handler that never calls `switchWorkspace`.
 
 ---
 
 ## Implications for Roadmap
 
-Based on the dependency graph across all four research files, these areas have strict ordering requirements. The suggested phase structure below respects those dependencies.
+The implementation order is dictated by module coupling. All three new features touch `workspaces.js` and `state.js`. The circular dependency must be resolved and the validation gap must be closed before new code is layered onto those modules.
 
-### Phase 1: Security Hardening and MV3 Migration
+### Phase 1: Tech Debt — Module Integrity
 
-**Rationale:** AMO will not accept MV2 extensions for new submissions. The security fixes (innerHTML, message validation, color injection) are explicitly listed as Mozilla review blockers. MV3 migration changes the background page model — doing it first means all subsequent phases are built on the correct foundation. MV3 non-persistent state management is a prerequisite for every other change that touches `isSwitching` or `activeWorkspaceId`.
+**Rationale:** The circular `state.js` ↔ `workspaces.js` dependency is latent today but will become a real initialization-order bug as new imports are added in Phases 2 and 3. The missing `validateWorkspaceData` on `readFromLocal()` is a data corruption risk that affects all users who hit the sync fallback path. Both fixes are low-risk, high-value, and touch no user-visible behavior.
+**Delivers:** A clean, acyclic module graph and consistent data validation on all storage read paths.
+**Addresses:** Tech debt items from FEATURES.md (P1 priority); Pitfalls V1-9 and V1-10.
+**Avoids:** Initialization-order `undefined` errors surfacing during Phase 2/3 development; silent data corruption on sync fallback.
+**Implementation scope:** Move `throttledSave` (and its `THROTTLE_MS` constant) from `state.js` to `index.js`; move `validateWorkspaceData` and `DEFAULT_WORKSPACE_DATA` from `workspaces.js` to `sync.js`; call validation at `readFromLocal()` and `assembleFromSync()` exit points. Zero behavior change.
 
-**Delivers:** An extension that passes `web-ext lint` with MV3 manifest, has no AMO security review blockers, and has a correctly structured non-persistent background.
+### Phase 2: Context Menu — "Move to Workspace"
 
-**Addresses:** Manifest V3 migration, innerHTML XSS fix, message sender validation, color value validation, `browser.browserAction` → `browser.action` rename (manifest + all API calls), `"persistent": true` removal.
+**Rationale:** This is a standalone new module (`menus.js`) that integrates with the now-stable `state.js` and `workspaces.js`. It touches `manifest.json` (one line), `index.js` (one `initMenus()` call), and `workspaces.js` (export `serializeTabs`). It does not touch `popup.js`, limiting test surface. The context menu feature is the highest-value new capability for power users and closes the biggest competitive gap.
+**Delivers:** Right-click "Move to Workspace" submenu in the Firefox tab strip, with multi-selected tab support.
+**Addresses:** Context menu feature from FEATURES.md (P1); competitor parity with Simple Tab Groups, FoxyTab, Tab Manager Plus, and Tabby.
+**Avoids:** Menu item duplication (Pitfall V1-2); async onShown race (Pitfall V1-3); wrong-tab targeting (Pitfall V1-4).
+**Implementation scope:** New `src/background/menus.js`; add `"menus"` permission to `manifest.json`; call `initMenus()` from `index.js`; export `serializeTabs` from `workspaces.js`.
 
-**Avoids:** Pitfall 1 (global in-memory state reset) — move `isSwitching` and `saveTimeout` to `storage.session` as part of MV3 migration, not as a separate step. The MV3 event page model forces this correctly.
+### Phase 3: New-Window Workspace Opening + Popup Modifier Keys
 
-**Research flag:** Standard patterns, well-documented. No additional research phase needed. Verification: `web-ext lint` passes, `addons-linter src/` passes, badge updates correctly after migration.
-
----
-
-### Phase 2: Data Integrity — Race Condition and Rollback Fix
-
-**Rationale:** The race condition in `switchWorkspace()` is the most acute data loss risk in the current codebase. It must be fixed before adding multi-window complexity on top of it — otherwise, debugging which bug caused a workspace corruption becomes difficult. This phase is also a prerequisite for the storage.sync migration because the correct write order (create → verify → commit → delete) determines how `storage.sync.set()` is called.
-
-**Delivers:** A workspace switch that never leaves users with missing tabs. Rollback on partial failure. Schema validation on storage reads with automatic corruption recovery.
-
-**Addresses:** Race condition fix (snapshot → create all tabs → verify count → delete old → commit storage), rollback on partial tab creation failure, storage schema validation function (`isValidWorkspace()`), corruption recovery (reset to default workspace if all data invalid).
-
-**Avoids:** Pitfall 5 (no rollback on partial tab creation), Anti-Pattern 2 (save before confirming new tabs exist).
-
-**Research flag:** Standard transactional pattern applied to tabs API. No additional research phase needed. Verification: mock `browser.tabs.create` to fail on 3rd tab; confirm storage is unchanged and old tabs are retained.
-
----
-
-### Phase 3: Multi-Window Workspace Tracking
-
-**Rationale:** Per-window workspace tracking is the central correctness gap. It depends on MV3 state management being in place (Phase 1) because the window→workspace map lives in `storage.session`, which requires correct non-persistent state handling. It also benefits from having the fixed `switchWorkspace()` (Phase 2) because the multi-window version calls the same operation with explicit `windowId` parameters.
-
-**Delivers:** Each browser window tracks its own active workspace independently. Popup shows the correct workspace for its window. Badge shows the correct workspace initial per window. Auto-save writes to the correct workspace for the window where the tab event occurred.
-
-**Addresses:** Per-window `windowId → workspaceId` map in `storage.session`, per-window `switchingLocks` in `storage.session`, replace all `currentWindow: true` with explicit `windowId`, `windows.onFocusChanged` handler with `WINDOW_ID_NONE` filtering, `windows.onCreated` and `windows.onRemoved` lifecycle handlers, popup `windowId`-aware rendering via `windows.getCurrent()`, `browser.action.setBadgeText({ windowId })` for per-window badge.
-
-**Avoids:** Pitfall 4 (`currentWindow: true` resolves to wrong window), Pitfall 6 (`WINDOW_ID_NONE` spurious events on Windows/Linux), Anti-Pattern 1 (global `activeWorkspaceId` + `isSwitching`), Anti-Pattern 4 (`currentWindow: true` in background tab queries).
-
-**Research flag:** No additional research needed. API behavior is verified. Verification checklist: open two windows with different workspaces; switch focus; wait for debounce; confirm Window A's workspace was not overwritten by Window B's tabs.
-
----
-
-### Phase 4: Firefox Sync Integration (storage.sync Migration)
-
-**Rationale:** This phase comes last because it requires the per-workspace key design (`workspace:{id}`) which is a data model change, and because the read/write paths established in Phases 2 and 3 must be in their final form before changing the storage backend. Migrating storage before the multi-window tracking is correct would risk writing window-state data incorrectly to sync.
-
-**Delivers:** Workspaces persist across reinstalls and sync across devices via Firefox account. Quota-aware writes with graceful fallback to `storage.local` when sync quota is exceeded.
-
-**Addresses:** Data model change to per-workspace keys (`workspace:{id}`, `workspaceIndex`), `runtime.onInstalled` migration from `storage.local` to `storage.sync` (read-verify-write-clear), `storage.session` for `windowWorkspaces` runtime cache (with `storage.sync` as canonical backup), `getBytesInUse()` quota monitoring on startup, `storage.local` fallback on `QuotaExceededError`, `sessions.setWindowValue`/`getWindowValue` as secondary association record for window close/restore.
-
-**Avoids:** Pitfall 2 (8,192-byte per-item limit), Pitfall 3 (missing gecko ID), Anti-Pattern 3 (all workspace data under one key).
-
-**Research flag:** The per-item quota behavior with real-world tab counts needs empirical verification. Test with a 40-tab workspace and confirm `getBytesInUse()` stays under 8,192 bytes per key. If URL truncation is needed, determine the cutoff. This is worth a brief research-phase before implementing the migration logic.
-
----
+**Rationale:** This phase modifies the most files (workspaces.js, messaging.js, popup.js) and changes user-visible behavior in the popup. It is last because it has the largest test surface and depends on `workspaces.js` being stable (ensured by Phase 1). The unassigned-window click change and the middle-click/Ctrl+click additions share the same `openWorkspaceInNewWindow` action and should ship together.
+**Delivers:** Opening any workspace in a new window from either the unassigned-window popup or a modifier-click; removal of the "Assign Here" button.
+**Addresses:** New-window opening and middle/Ctrl+click features from FEATURES.md (P1 and P2); replaces confusing "Assign Here" UX with the obvious action.
+**Avoids:** `windows.create()` URL-only and `about:newtab` constraints (Pitfalls V1-5 and V1-6); spurious throttled saves during window creation (Pitfall V1-5); Ctrl+click calling `switchWorkspace` (Pitfall V1-8); middle-click using `click` instead of `auxclick` (Pitfall V1-7).
+**Implementation scope:** Add `openWorkspaceInNewWindow()` to `workspaces.js`; add `'openInNewWindow'` case to `messaging.js`; update `popup.js` to remove `onAssign()`, replace unassigned-window click path, add `auxclick` and Ctrl+click handlers.
 
 ### Phase Ordering Rationale
 
-The ordering is driven by three dependencies discovered across the research files:
-
-- **MV3 before everything:** Non-persistent background changes the state model that all other phases depend on. Building multi-window tracking on top of a persistent-style codebase would require rewriting it again after MV3 migration.
-- **Data integrity before multi-window:** The race condition fix defines the correct write order for `switchWorkspace()`. Multi-window adds a `windowId` parameter to the same function but does not change its internal logic. Getting the logic right in single-window context first makes multi-window testing cleaner.
-- **Multi-window before storage.sync migration:** The window-workspace association (`windowWorkspaces`) is part of what gets stored in `storage.sync`. Migrating the storage layer before the association map is finalized risks locking in a flawed schema.
+- Phase 1 before Phases 2 and 3: Both new features import from or modify `state.js` and `workspaces.js`. Resolving the circular dependency first means no new code is layered onto a fragile module boundary.
+- Phase 2 before Phase 3: `menus.js` is a new file with minimal integration surface. Phase 3 modifies existing files with user-visible behavior. Isolating the new-file work first keeps the Phase 3 diff clean and reviewable.
+- Phases 2 and 3 are independent of each other once Phase 1 is complete, and could be parallelized if multiple contributors are available.
 
 ### Research Flags
 
-**Needs research during planning:**
-- **Phase 4 (storage.sync migration):** Empirical quota testing with real-world workspace sizes. The 8,192-byte per-item limit requires validation that the per-workspace key design stays under limit with typical usage (30+ tabs, long URLs). Also validate that the `runtime.onInstalled` migration from `storage.local` to `storage.sync` does not lose data in edge cases (sync temporarily unavailable at install time).
+Phases with well-documented patterns (skip research-phase):
+- **Phase 1 (tech debt):** Pure refactoring. Module migration patterns are well-understood; no API research needed.
+- **Phase 2 (context menu):** All APIs verified against MDN. The `menus.onShown` instance ID guard and `runtime.onInstalled` registration patterns are fully specified.
+- **Phase 3 (new window):** All APIs verified against MDN. The `windows.create()` URL-array pattern and pinned-state post-application are fully specified.
 
-**Standard patterns — skip additional research phase:**
-- **Phase 1 (MV3 + security):** Fully documented by Extension Workshop migration guide and OWASP. `web-ext lint` provides automated verification.
-- **Phase 2 (race condition fix):** Standard transactional pattern. The fix is clearly defined: snapshot → create → verify → delete → commit.
-- **Phase 3 (multi-window):** All APIs verified against MDN. The `WINDOW_ID_NONE` gotcha is documented and the prevention is mechanical.
+No phases require a `/gsd:research-phase` call. All required API behavior was verified during the initial research cycle.
 
 ---
 
@@ -189,46 +127,41 @@ The ordering is driven by three dependencies discovered across the research file
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All APIs verified against MDN and Extension Workshop; version compatibility confirmed against Firefox 142+ minimum; no external dependencies to assess |
-| Features | HIGH | Feature categories verified against three AMO competitor extensions and OWASP; MVP boundary is clear and non-negotiable (AMO review requirements) |
-| Architecture | HIGH | All architectural patterns verified against MDN; anti-patterns are directly observable in the existing codebase (code analysis in CONCERNS.md); no speculative patterns |
-| Pitfalls | HIGH | Critical pitfalls verified against MDN, Extension Workshop, and Bugzilla; WINDOW_ID_NONE behavior confirmed in MDN docs; quota limits confirmed against official storage.sync documentation |
+| Stack | HIGH | All APIs verified against MDN official documentation. No new dependencies. Firefox 142+ minimum version covers all required APIs (menus.onShown requires Firefox 60+). |
+| Features | HIGH | Core API behavior verified against MDN. UX patterns cross-referenced against four competitor extensions on AMO. Feature scope defined in PROJECT.md. |
+| Architecture | HIGH | Based on direct source code analysis of v1.0 modules plus MDN docs. Module graph and integration points are fully mapped. Build order is unambiguous. |
+| Pitfalls | HIGH | Critical pitfalls verified against MDN docs, Extension Workshop, and Bugzilla. v1.0 pitfalls (storage.sync quota, MV3 state reset) already resolved in shipped code. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Empirical quota sizing:** The 8,192-byte per-item limit is documented, but the actual serialized size of a realistic workspace (30 tabs, mixed URL lengths) needs measurement before committing to the per-workspace key schema in Phase 4. If a single workspace exceeds 8 KB, a second level of key splitting (`workspace:{id}:tabs:{chunk}`) may be needed — not anticipated in the current design.
-
-- **`browser.alarms` for debounce:** The 400ms debounce currently uses `setTimeout`. In a non-persistent MV3 background, `setTimeout` is reset on background unload. If the background unloads during a 400ms debounce window, the save is silently dropped. The research recommends `browser.alarms` as the replacement, but the exact implementation (alarm naming convention, minimum 1-minute alarm granularity in Firefox) needs validation. If the 1-minute minimum makes `browser.alarms` unsuitable for a 400ms debounce, an alternative approach (synchronous save on every tab event, filtered by lock) should be evaluated during Phase 3 planning.
-
-- **Firefox Sync availability check at runtime:** `storage.sync` requires the user to have Firefox Sync enabled with "Add-ons" selected. There is no API to check this state directly. The research recommends falling back to `storage.local` on write failure, but there is no known way to proactively warn the user that sync is disabled. A UX approach (popup footer status message after a failed `getBytesInUse()` call) may need design validation.
+- **`menus.create()` persistence after background restart:** ARCHITECTURE.md notes the parent menu item is registered in `runtime.onInstalled`. Menu items registered in `onInstalled` persist in Firefox between background reloads — but this should be verified empirically during Phase 2 development. If items are lost on restart, a fallback `menus.create` call in the startup path with a prior `menus.remove` guard will be needed.
+- **`about:newtab` tab count on new window:** When a workspace consists entirely of `about:newtab` entries, `windows.create()` is called without a URL array and opens a single default tab, not N tabs. This is an acceptable constraint but should be documented in implementation comments so future maintainers understand why empty workspaces restore with one tab.
+- **`tabs.move()` with pinned tabs in context menu:** ARCHITECTURE.md notes that `tabs.move()` behavior with pinned tabs (moving them before unpinned tabs) may need additional handling. This is a minor edge case to validate during Phase 2 testing, not a blocker.
 
 ---
 
 ## Sources
 
-### Primary (HIGH confidence)
-- [MDN: storage.sync](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync) — quota constants, error behavior, gecko ID requirement
-- [MDN: storage.session](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/session) — in-memory lifetime, 10 MB quota, Firefox 112+ availability
-- [MDN: Background scripts](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts) — MV3 non-persistent event page model, state management patterns
-- [MDN: windows.onFocusChanged](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/onFocusChanged) — WINDOW_ID_NONE platform behavior
-- [MDN: tabs.query](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/query) — currentWindow behavior in background scripts
-- [MDN: runtime.MessageSender](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/MessageSender) — sender.url validation pattern
-- [MDN: sessions API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sessions) — setWindowValue/getWindowValue, close-restore persistence
-- [Extension Workshop: MV3 Migration Guide](https://extensionworkshop.com/documentation/develop/manifest-v3-migration-guide/) — authoritative MV2→MV3 change list
-- [Codebase CONCERNS.md](../.planning/codebase/CONCERNS.md) — direct analysis of this codebase's current issues
+### Primary (HIGH confidence — MDN official documentation)
+- [MDN: browser.menus API](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus) — full API surface, contexts, permission name
+- [MDN: menus.onShown](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/onShown) — async race condition and instance ID guard pattern
+- [MDN: menus.refresh()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/menus/refresh) — onShown + refresh() dynamic update pattern
+- [MDN: tabs.query()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/query) — `highlighted: boolean` in QueryInfo
+- [MDN: tabs.move()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/move) — array of tabIds, cross-window move, index: -1
+- [MDN: windows.create()](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/create) — tabId is integer (single tab only); url accepts string array; no tab objects
+- [MDN: auxclick event](https://developer.mozilla.org/en-US/docs/Web/API/Element/auxclick_event) — non-primary button click detection in popup
 
 ### Secondary (MEDIUM confidence)
-- [Mozilla Addons Blog: MV3 March 2024 Update](https://blog.mozilla.org/addons/2024/03/13/manifest-v3-manifest-v2-march-2024-update/) — confirmed MV2 not deprecated in Firefox; event pages not service workers
-- [Mozilla Addons Blog: Changes to storage.sync in Firefox 79](https://blog.mozilla.org/addons/2020/07/09/changes-to-storage-sync-in-firefox-79/) — quota enforcement, automatic migration
-- [Mozilla Discourse: MV3 event page behavior](https://discourse.mozilla.org/t/mv3-event-page-behavior-clarification/97738) — community confirmation of event page lifetime
-- [Bugzilla #1656947](https://bugzilla.mozilla.org/show_bug.cgi?id=1656947) — QuotaExceededError on storage.sync operations
-- [AMO competitor extensions](https://addons.mozilla.org/en-US/firefox/addon/tab-workspaces/) — feature landscape comparison
+- [WebExtensions dynamic context menu — Mozilla Discourse](https://discourse.mozilla.org/t/webextensions-dynamic-context-menu/18051) — confirmed async race in onShown is a known issue
+- [Bug 1469148: middle click in WebExtension menus — Bugzilla (VERIFIED FIXED, Firefox 64)](https://bugzilla.mozilla.org/show_bug.cgi?id=1469148) — auxclick event behavior in Firefox
+- AMO competitor extensions: Simple Tab Groups, FoxyTab, Tab Manager Plus, Tabby — feature comparison and market expectations
 
-### Tertiary (informational)
-- [OWASP Browser Extension Vulnerabilities Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Browser_Extension_Vulnerabilities_Cheat_Sheet.html) — security baseline for extension review
+### Internal
+- Direct source code analysis: `src/background/{index,state,workspaces,messaging,sync}.js`, `src/popup/popup.js` — module dependency graph, existing patterns
 
 ---
-*Research completed: 2026-03-21*
+
+*Research completed: 2026-03-23*
 *Ready for roadmap: yes*

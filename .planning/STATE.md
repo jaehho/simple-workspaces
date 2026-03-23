@@ -6,7 +6,7 @@ status: active
 stopped_at: null
 last_updated: "2026-03-23"
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,14 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** v1.1 Hardening & Tab Movement — defining requirements
+**Current focus:** v1.1 Hardening & Tab Movement — Phase 5: Module Integrity
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 5 — Module Integrity
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-23 — Milestone v1.1 started
+Status: Ready to plan (roadmap created, no plans yet)
+Last activity: 2026-03-23 — Roadmap created for v1.1
+
+```
+Phase 5 [          ] 0%
+Phase 6 [          ] 0%
+Phase 7 [          ] 0%
+```
 
 ## Performance Metrics
 
@@ -55,7 +61,7 @@ None.
 
 ### Blockers/Concerns
 
-None active — v1.0 shipped. Tech debt documented in milestone audit.
+None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular dependency and validation gap must be resolved before new code touches those modules.
 
 ### Quick Tasks Completed
 
@@ -65,6 +71,6 @@ None active — v1.0 shipped. Tech debt documented in milestone audit.
 
 ## Session Continuity
 
-Last activity: 2026-03-21 - Completed quick task 260321-oyr: Fix edit/new workspace modal cutoff in popup
-Stopped at: v1.0 milestone complete
+Last activity: 2026-03-23 - Roadmap created for v1.1 (Phases 5-7)
+Stopped at: Roadmap complete, ready to plan Phase 5
 Resume file: None

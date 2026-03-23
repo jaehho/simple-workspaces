@@ -51,22 +51,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | — | Pending |
-| DEBT-02 | — | Pending |
-| MENU-01 | — | Pending |
-| MENU-02 | — | Pending |
-| MENU-03 | — | Pending |
-| MENU-04 | — | Pending |
-| WIN-01 | — | Pending |
-| WIN-02 | — | Pending |
-| WIN-03 | — | Pending |
-| WIN-04 | — | Pending |
+| DEBT-01 | Phase 5 | Pending |
+| DEBT-02 | Phase 5 | Pending |
+| MENU-01 | Phase 6 | Pending |
+| MENU-02 | Phase 6 | Pending |
+| MENU-03 | Phase 6 | Pending |
+| MENU-04 | Phase 6 | Pending |
+| WIN-01 | Phase 7 | Pending |
+| WIN-02 | Phase 7 | Pending |
+| WIN-03 | Phase 7 | Pending |
+| WIN-04 | Phase 7 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-23*
-*Last updated: 2026-03-23 after initial definition*
+*Last updated: 2026-03-23 after roadmap creation*

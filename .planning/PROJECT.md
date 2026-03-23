@@ -30,7 +30,11 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 ### Active
 
-(none — all milestone requirements validated)
+- [ ] Fix validateWorkspaceData not called on readFromLocal() fallback path
+- [ ] Resolve circular dependency state.js <-> workspaces.js
+- [ ] Context menu "Move to {workspace}" for selected tabs (moves tabs + switches)
+- [ ] Clicking workspace from unassigned window opens in new window (remove "Assign Here")
+- [ ] Middle-click or Ctrl+click workspace to open in new window
 
 ### Out of Scope
 
@@ -40,6 +44,17 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Keyboard shortcuts — not requested
 - Import/export of workspaces — not requested
 - Automated test suite — valuable but not in this milestone
+
+## Current Milestone: v1.1 Hardening & Tab Movement
+
+**Goal:** Resolve v1.0 tech debt, add context menu tab movement between workspaces, and improve window management for unassigned windows.
+
+**Target features:**
+- Fix validation gap on local storage fallback path
+- Resolve circular dependency between state.js and workspaces.js
+- Right-click context menu "Move to {workspace}" for selected tabs
+- Open workspace in new window from unassigned windows (replacing "Assign Here")
+- Middle-click / Ctrl+click to open any workspace in a new window
 
 ## Context
 
@@ -93,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v1.0 milestone*
+*Last updated: 2026-03-23 after v1.1 milestone start*

@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: completed
-stopped_at: v1.0 milestone complete — all 4 phases shipped, archived
-last_updated: "2026-03-21T21:30:54.212Z"
+milestone: v1.1
+milestone_name: Hardening & Tab Movement
+status: active
+stopped_at: null
+last_updated: "2026-03-23"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-21)
+See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** v1.0 milestone complete — planning next milestone
+**Current focus:** v1.1 Hardening & Tab Movement — defining requirements
 
 ## Current Position
 
-Milestone: v1.0 MVP — SHIPPED 2026-03-21
-Next: `/gsd:new-milestone` to start v1.1
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-23 — Milestone v1.1 started
 
 ## Performance Metrics
 

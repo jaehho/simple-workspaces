@@ -1,7 +1,9 @@
 // ── Workspace CRUD and Tab Operations ───────────────────────
 
 import { getSessionState, setSessionState, getWindowMap, setWindowEntry } from './state.js'
-import { getWorkspaces, saveWorkspaces, deleteWorkspaceFromSync } from './sync.js'
+import { getWorkspaces, saveWorkspaces, deleteWorkspaceFromSync, validateWorkspaceData, DEFAULT_WORKSPACE_DATA } from './sync.js'
+
+export { validateWorkspaceData, DEFAULT_WORKSPACE_DATA }
 
 export const COLORS = [
   { name: 'Blue',   hex: '#3b82f6' },
@@ -21,36 +23,6 @@ const THROTTLE_MS = 500
 function sanitizeColor(value) {
   if (HEX_COLOR_RE.test(value)) return value
   return COLORS[0].hex  // fallback to Blue: #3b82f6
-}
-
-// ── Schema Validation ────────────────────────────────────────
-
-export const DEFAULT_WORKSPACE_DATA = () => ({
-  workspaces: [],
-  activeWorkspaceId: null,
-})
-
-export function validateWorkspaceData(data) {
-  if (!data || typeof data !== 'object') return DEFAULT_WORKSPACE_DATA()
-  if (!Array.isArray(data.workspaces)) return DEFAULT_WORKSPACE_DATA()
-  if (data.workspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
-
-  const validWorkspaces = data.workspaces.filter(ws =>
-    ws !== null &&
-    typeof ws === 'object' &&
-    typeof ws.id === 'string' && ws.id.length > 0 &&
-    typeof ws.name === 'string' &&
-    typeof ws.color === 'string' &&
-    Array.isArray(ws.tabs)
-  )
-
-  if (validWorkspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
-
-  const activeValid = validWorkspaces.some(ws => ws.id === data.activeWorkspaceId)
-  return {
-    workspaces: validWorkspaces,
-    activeWorkspaceId: activeValid ? data.activeWorkspaceId : validWorkspaces[0].id,
-  }
 }
 
 // ── Initialization ──────────────────────────────────────────

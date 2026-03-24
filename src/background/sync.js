@@ -14,6 +14,36 @@ const SYNC_FAILED_KEY = 'syncFailed'
 // (kept as a documented constant per spec, used implicitly by chunk design)
 void QUOTA_BYTES_PER_ITEM
 
+// ── Schema Validation ────────────────────────────────────────
+
+export const DEFAULT_WORKSPACE_DATA = () => ({
+  workspaces: [],
+  activeWorkspaceId: null,
+})
+
+export function validateWorkspaceData(data) {
+  if (!data || typeof data !== 'object') return DEFAULT_WORKSPACE_DATA()
+  if (!Array.isArray(data.workspaces)) return DEFAULT_WORKSPACE_DATA()
+  if (data.workspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
+
+  const validWorkspaces = data.workspaces.filter(ws =>
+    ws !== null &&
+    typeof ws === 'object' &&
+    typeof ws.id === 'string' && ws.id.length > 0 &&
+    typeof ws.name === 'string' &&
+    typeof ws.color === 'string' &&
+    Array.isArray(ws.tabs)
+  )
+
+  if (validWorkspaces.length === 0) return DEFAULT_WORKSPACE_DATA()
+
+  const activeValid = validWorkspaces.some(ws => ws.id === data.activeWorkspaceId)
+  return {
+    workspaces: validWorkspaces,
+    activeWorkspaceId: activeValid ? data.activeWorkspaceId : validWorkspaces[0].id,
+  }
+}
+
 // ── Read ─────────────────────────────────────────────────────
 
 export async function getWorkspaces() {
@@ -216,8 +246,9 @@ async function isSyncFailed() {
 }
 
 async function readFromLocal() {
-  const result = await browser.storage.local.get('workspaces')
-  return Array.isArray(result.workspaces) ? result.workspaces : []
+  const result = await browser.storage.local.get({ workspaces: null, activeWorkspaceId: null })
+  const raw = { workspaces: result.workspaces, activeWorkspaceId: result.activeWorkspaceId }
+  return validateWorkspaceData(raw).workspaces
 }
 
 // ── Helpers ───────────────────────────────────────────────────

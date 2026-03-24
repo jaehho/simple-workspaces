@@ -16,6 +16,7 @@ export const COLORS = [
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/
 const RECLAIM_THRESHOLD = 0.5
+const THROTTLE_MS = 500
 
 function sanitizeColor(value) {
   if (HEX_COLOR_RE.test(value)) return value
@@ -100,6 +101,25 @@ export async function saveCurrentWorkspace(windowId) {
   } catch (e) {
     console.error('[Workspaces] Save error:', e)
   }
+}
+
+// ── Throttled Save ───────────────────────────────────────────
+
+export async function throttledSave(windowId) {
+  if (windowId === undefined) return
+
+  // Skip if this window has no workspace assignment (D-08, Pitfall 2)
+  const windowMap = await getWindowMap()
+  if (!windowMap[String(windowId)]) return
+
+  const state = await getSessionState()
+  if (state.isSwitching) return
+
+  const now = Date.now()
+  if (now - state.lastSaveTime < THROTTLE_MS) return
+
+  await setSessionState({ lastSaveTime: now })
+  await saveCurrentWorkspace(windowId)
 }
 
 // ── Switch Workspace ────────────────────────────────────────

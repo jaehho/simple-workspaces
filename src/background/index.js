@@ -2,8 +2,8 @@
 // All listeners MUST be registered synchronously at the top level.
 // Firefox event pages only wake for events with top-level listeners.
 
-import { throttledSave, removeWindowEntry, getWindowMap } from './state.js'
-import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces } from './workspaces.js'
+import { removeWindowEntry, getWindowMap } from './state.js'
+import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces, throttledSave } from './workspaces.js'
 import { handleMessage } from './messaging.js'
 import { migrateIfNeeded, getWorkspaces } from './sync.js'
 

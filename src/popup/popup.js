@@ -37,50 +37,20 @@ async function renderList() {
   const list = document.getElementById('workspace-list');
   while (list.firstChild) list.firstChild.remove();
 
-  // Remove any existing unassigned banner before re-rendering
-  const existingBanner = document.querySelector('.ws-unassigned-banner');
-  if (existingBanner) existingBanner.remove();
-
   const { workspaces, windowMap, activeWorkspaceId } = state;
+
+  // Update subtitle based on window assignment state (D-07)
+  const subtitle = document.getElementById('ws-subtitle')
+  if (subtitle) {
+    subtitle.textContent = activeWorkspaceId === null
+      ? 'Click to open in new window'
+      : 'Ctrl+click to open in new window'
+  }
 
   // Build reverse lookup: workspaceId -> windowId (for detecting in-use workspaces)
   const workspaceWindowMap = {};
   for (const [wid, wsId] of Object.entries(windowMap || {})) {
     if (wsId) workspaceWindowMap[wsId] = Number(wid);
-  }
-
-  if (activeWorkspaceId === null) {
-    // Unassigned window — show banner and mark list
-    list.classList.add('workspace-list--unassigned');
-
-    const banner = document.createElement('div');
-    banner.className = 'ws-unassigned-banner';
-
-    const icon = makeSvgIcon('M2 3h12v10H2zM2 6h12', {
-      'stroke': 'currentColor',
-      'stroke-width': '1.3',
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round'
-    });
-    icon.setAttribute('width', '14');
-    icon.setAttribute('height', '14');
-
-    const textContainer = document.createElement('div');
-    const heading = document.createElement('span');
-    heading.className = 'ws-unassigned-heading';
-    heading.textContent = 'No workspace assigned';
-    const subtext = document.createElement('span');
-    subtext.className = 'ws-unassigned-subtext';
-    subtext.textContent = 'Click a workspace to assign this window, or create a new one.';
-    textContainer.appendChild(heading);
-    textContainer.appendChild(subtext);
-
-    banner.appendChild(icon);
-    banner.appendChild(textContainer);
-
-    list.parentNode.insertBefore(banner, list);
-  } else {
-    list.classList.remove('workspace-list--unassigned');
   }
 
   workspaces.forEach((ws) => {
@@ -129,18 +99,6 @@ async function renderList() {
 
     const actions = document.createElement('div');
     actions.className = 'ws-actions';
-
-    // Assign Here button (only in unassigned window, only for non-in-use workspaces)
-    if (activeWorkspaceId === null && !isInUse) {
-      const assignBtn = document.createElement('button');
-      assignBtn.className = 'assign';
-      assignBtn.textContent = 'Assign Here';
-      assignBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        onAssign(ws.id);
-      });
-      actions.insertBefore(assignBtn, actions.firstChild);
-    }
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
@@ -212,13 +170,6 @@ async function onSwitch(workspaceId) {
 async function onFocusWindow(targetWindowId) {
   await browser.runtime.sendMessage({ action: 'focusWindow', targetWindowId });
   window.close();
-}
-
-async function onAssign(workspaceId) {
-  const items = document.querySelectorAll('.workspace-item');
-  items.forEach(item => item.style.opacity = '0.5');
-  await browser.runtime.sendMessage({ action: 'assignWorkspace', workspaceId, windowId: currentWindowId });
-  await renderList();
 }
 
 async function onAdd() {

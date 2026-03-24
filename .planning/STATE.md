@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
 status: unknown
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-24T05:50:48.971Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-24T09:25:27.542Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 05 — module-integrity
+**Current focus:** Phase 06 — context-menu
 
 ## Current Position
 
-Phase: 6
-Plan: Not started
+Phase: 06 (context-menu) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Plan: Not started
 | Phase 04-firefox-sync P01 | 2min | 1 tasks | 1 files |
 | Phase 04-firefox-sync P02 | 3min | 3 tasks | 3 files |
 | Phase 05 P01 | 2 | 2 tasks | 4 files |
+| Phase 06 P01 | 94s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -51,6 +52,9 @@ All decisions logged in PROJECT.md Key Decisions table.
 
 - [Phase 05]: Move throttledSave to workspaces.js — functions live in the module that owns their primary dependency (saveCurrentWorkspace)
 - [Phase 05]: Move validateWorkspaceData to sync.js — validation belongs at the storage boundary that reads data, not in the CRUD module
+- [Phase 06]: Cross-window source update: re-query window tabs after browser.tabs.move() rather than URL filtering to avoid duplicate URL collisions
+- [Phase 06]: Same-window source update: URL-based Set filtering since tab IDs may not be stable after switchWorkspace
+- [Phase 06]: Sort pinned tabs first before browser.tabs.move() to prevent Firefox silent move failures
 
 ### Pending Todos
 
@@ -69,5 +73,5 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

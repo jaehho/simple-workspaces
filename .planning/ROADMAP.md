@@ -46,9 +46,9 @@ Plans:
   2. Clicking a workspace in the submenu moves the right-clicked tab to that workspace and switches to it
   3. When multiple tabs are selected (Ctrl+click or Shift+click), all highlighted tabs move together as a group — not just the right-clicked one
   4. After creating, renaming, or deleting a workspace, the submenu reflects the updated list the next time it is opened
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 06-01-PLAN.md — Add lastUsedAt MRU tracking and moveTabsToWorkspace() operation
+- [x] 06-01-PLAN.md — Add lastUsedAt MRU tracking and moveTabsToWorkspace() operation
 - [ ] 06-02-PLAN.md — Create menus.js module, manifest permission, and index.js wiring
 
 ### Phase 7: New-Window Opening
@@ -71,5 +71,5 @@ Plans:
 | 3. Multi-Window Tracking | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 4. Firefox Sync | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 5. Module Integrity | v1.1 | 1/1 | Complete   | 2026-03-24 |
-| 6. Context Menu | v1.1 | 0/2 | Planned | - |
+| 6. Context Menu | v1.1 | 1/2 | In Progress|  |
 | 7. New-Window Opening | v1.1 | 0/? | Not started | - |

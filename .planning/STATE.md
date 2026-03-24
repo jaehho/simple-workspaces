@@ -2,14 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
-status: active
-stopped_at: null
-last_updated: "2026-03-23"
+status: unknown
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-24T05:48:09.680Z"
+last_activity: 2026-03-24
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,20 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** v1.1 Hardening & Tab Movement — Phase 5: Module Integrity
+**Current focus:** Phase 05 — module-integrity
 
 ## Current Position
 
-Phase: 5 — Module Integrity
-Plan: —
-Status: Ready to plan (roadmap created, no plans yet)
-Last activity: 2026-03-23 — Roadmap created for v1.1
-
-```
-Phase 5 [          ] 0%
-Phase 6 [          ] 0%
-Phase 7 [          ] 0%
-```
+Phase: 05 (module-integrity) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -48,12 +41,16 @@ Phase 7 [          ] 0%
 | Phase 03-multi-window-tracking P02 | 5 | 2 tasks | 2 files |
 | Phase 04-firefox-sync P01 | 2min | 1 tasks | 1 files |
 | Phase 04-firefox-sync P02 | 3min | 3 tasks | 3 files |
+| Phase 05 P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
 ### Decisions
 
 All decisions logged in PROJECT.md Key Decisions table.
+
+- [Phase 05]: Move throttledSave to workspaces.js — functions live in the module that owns their primary dependency (saveCurrentWorkspace)
+- [Phase 05]: Move validateWorkspaceData to sync.js — validation belongs at the storage boundary that reads data, not in the CRUD module
 
 ### Pending Todos
 
@@ -71,6 +68,6 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 
 ## Session Continuity
 
-Last activity: 2026-03-23 - Roadmap created for v1.1 (Phases 5-7)
-Stopped at: Roadmap complete, ready to plan Phase 5
+Last activity: 2026-03-24
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None

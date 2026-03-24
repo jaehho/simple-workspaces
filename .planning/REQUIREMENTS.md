@@ -9,8 +9,8 @@ Requirements for v1.1 Hardening & Tab Movement. Each maps to roadmap phases.
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: Storage validation is applied on the `readFromLocal()` fallback path, preventing corrupted data from reaching callers
-- [ ] **DEBT-02**: Circular dependency between state.js and workspaces.js is eliminated without behavior change
+- [x] **DEBT-01**: Storage validation is applied on the `readFromLocal()` fallback path, preventing corrupted data from reaching callers
+- [x] **DEBT-02**: Circular dependency between state.js and workspaces.js is eliminated without behavior change
 
 ### Context Menu
 
@@ -51,8 +51,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEBT-01 | Phase 5 | Pending |
-| DEBT-02 | Phase 5 | Pending |
+| DEBT-01 | Phase 5 | Complete |
+| DEBT-02 | Phase 5 | Complete |
 | MENU-01 | Phase 6 | Pending |
 | MENU-02 | Phase 6 | Pending |
 | MENU-03 | Phase 6 | Pending |

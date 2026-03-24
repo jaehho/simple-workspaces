@@ -6,6 +6,7 @@ let allColors = [];
 let editingId = null;
 let selectedColor = null;
 let currentWindowId = null;
+let kbIndex = -1;
 
 // ── Init ────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('edit-name').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') onModalSave();
   });
+
+  document.addEventListener('keydown', onKeyNav);
 });
 
 // ── Render ───────────────────────────────────────────────────
@@ -33,6 +36,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function renderList() {
   const state = await browser.runtime.sendMessage({ action: 'getState', windowId: currentWindowId });
   if (!state || !state.workspaces) return;
+
+  kbIndex = -1;
 
   const list = document.getElementById('workspace-list');
   while (list.firstChild) list.firstChild.remove();
@@ -294,6 +299,45 @@ function renderColorPicker(activeColor) {
     });
     picker.appendChild(swatch);
   });
+}
+
+// ── Keyboard Navigation ──────────────────────────────────────
+
+function onKeyNav(e) {
+  // Don't intercept when modal is open or an input/textarea is focused
+  if (!document.getElementById('edit-modal').classList.contains('hidden')) return
+  if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return
+
+  const items = document.querySelectorAll('.workspace-item')
+  if (!items.length) return
+
+  let handled = false
+
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    kbIndex = kbIndex < items.length - 1 ? kbIndex + 1 : 0
+    handled = true
+  } else if (e.key === 'ArrowUp' || e.key === 'k') {
+    kbIndex = kbIndex > 0 ? kbIndex - 1 : items.length - 1
+    handled = true
+  } else if (e.key === 'Enter' && kbIndex >= 0 && kbIndex < items.length) {
+    items[kbIndex].click()
+    handled = true
+  }
+
+  if (handled) {
+    e.preventDefault()
+    updateKbHighlight(items)
+  }
+}
+
+function updateKbHighlight(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle('kb-highlight', i === kbIndex)
+  })
+  // Scroll highlighted item into view if needed
+  if (kbIndex >= 0 && items[kbIndex]) {
+    items[kbIndex].scrollIntoView({ block: 'nearest' })
+  }
 }
 
 // ── SVG Helpers ────────────────────────────────────────────

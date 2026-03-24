@@ -65,10 +65,9 @@ None.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260321-oyr | Fix edit/new workspace modal cutoff in popup | 2026-03-21 | 6a250dd | [260321-oyr-the-edit-workspace-popup-and-new-workspa](./quick/260321-oyr-the-edit-workspace-popup-and-new-workspa/) |
-| 260324-kqf | Add keyboard shortcuts for switching workspaces (Alt+Shift+Left/Right) | 2026-03-24 | 0a2b92d | [260324-kqf-add-keyboard-shortcuts-for-switching-wor](./quick/260324-kqf-add-keyboard-shortcuts-for-switching-wor/) |
+| 260324-kqf | Add keyboard shortcut to open workspace popup (Alt+Shift+W) | 2026-03-24 | adc88f1 | [260324-kqf-add-keyboard-shortcuts-for-switching-wor](./quick/260324-kqf-add-keyboard-shortcuts-for-switching-wor/) |
 
 ## Session Continuity
 
-Last activity: 2026-03-24
-Stopped at: Quick task 260324-kqf complete — awaiting human verify checkpoint
+Last activity: 2026-03-24 - Completed quick task 260324-kqf: Add keyboard shortcut to open workspace popup
 Resume file: None

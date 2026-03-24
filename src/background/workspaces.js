@@ -213,6 +213,83 @@ export async function switchWorkspace(targetId, windowId) {
   }
 }
 
+// ── Move Tabs to Workspace ──────────────────────────────────
+
+export async function moveTabsToWorkspace(tabs, targetWsId, sourceWindowId) {
+  await setSessionState({ isSwitching: true })
+  let snapWorkspaces = null
+
+  try {
+    const workspaces = await getWorkspaces()
+    const windowMap = await getWindowMap()
+
+    const targetWs = workspaces.find(w => w.id === targetWsId)
+    if (!targetWs) return { success: false, error: 'Target workspace not found' }
+
+    const sourceWsId = windowMap[String(sourceWindowId)]
+    const sourceWs = workspaces.find(w => w.id === sourceWsId)
+
+    // Snapshot for rollback (D-09)
+    snapWorkspaces = JSON.parse(JSON.stringify(workspaces))
+
+    // Find if target workspace is active in another window
+    const targetWindowEntry = Object.entries(windowMap)
+      .find(([wid, wsId]) => wsId === targetWsId && wid !== String(sourceWindowId))
+    const targetWindowId = targetWindowEntry ? Number(targetWindowEntry[0]) : null
+
+    if (targetWindowId) {
+      // Cross-window: physically move tabs (D-05, no reload)
+      // Sort pinned tabs first to avoid silent move failures (Pitfall 3)
+      const sortedTabs = [...tabs].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0))
+      await browser.tabs.move(sortedTabs.map(t => t.id), { windowId: targetWindowId, index: -1 })
+
+      // Re-query source window tabs after move to get accurate remaining list
+      if (sourceWs) {
+        const remainingTabs = await browser.tabs.query({ windowId: sourceWindowId })
+        sourceWs.tabs = serializeTabs(remainingTabs)
+      }
+
+      // Update target workspace tab list from live window state
+      const targetWindowTabs = await browser.tabs.query({ windowId: targetWindowId })
+      targetWs.tabs = serializeTabs(targetWindowTabs)
+      targetWs.lastUsedAt = Date.now()
+
+      await saveWorkspaces(workspaces)
+
+      // Update badge for source window
+      if (sourceWs) updateBadge(sourceWs, sourceWindowId)
+
+      // Focus target window (D-02/D-03)
+      await browser.windows.update(targetWindowId, { focused: true })
+    } else {
+      // Same-window: serialize moved tabs into target, remove from source, then switch
+      const movedTabData = serializeTabs(tabs)
+      targetWs.tabs = [...targetWs.tabs, ...movedTabData]
+
+      if (sourceWs) {
+        const movedUrls = new Set(tabs.map(t => t.url))
+        sourceWs.tabs = sourceWs.tabs.filter(t => !movedUrls.has(t.url))
+      }
+
+      targetWs.lastUsedAt = Date.now()
+      await saveWorkspaces(workspaces)
+      await switchWorkspace(targetWsId, sourceWindowId)
+    }
+
+    return { success: true }
+  } catch (e) {
+    console.error('[Workspaces] Move error:', e)
+    if (snapWorkspaces) {
+      await saveWorkspaces(snapWorkspaces).catch(err =>
+        console.error('[Workspaces] Move rollback failed:', err)
+      )
+    }
+    return { success: false, error: e.message }
+  } finally {
+    await setSessionState({ isSwitching: false })
+  }
+}
+
 // ── Rollback (compensation for failed switch) ───────────────
 
 async function rollbackSwitch(createdTabIds, snapshot, windowId) {

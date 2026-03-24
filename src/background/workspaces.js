@@ -37,6 +37,7 @@ export async function initDefaultWorkspace(windowId) {
     color: COLORS[0].hex,
     tabs: tabData,
     createdAt: Date.now(),
+    lastUsedAt: Date.now(),
   }
 
   await saveWorkspaces([defaultWorkspace])
@@ -189,6 +190,9 @@ export async function switchWorkspace(targetId, windowId) {
       await browser.tabs.remove(oldTabIds)
     }
 
+    // Record MRU timestamp on target workspace
+    target.lastUsedAt = Date.now()
+
     // Persist workspaces (tab data update); do NOT write activeWorkspaceId to sync
     await saveWorkspaces(workspaces)
 
@@ -243,6 +247,7 @@ export async function createWorkspace(name, color, windowId) {
     color: color ? sanitizeColor(color) : COLORS[workspaces.length % COLORS.length].hex,
     tabs: [],
     createdAt: Date.now(),
+    lastUsedAt: Date.now(),
   }
 
   workspaces.push(newWorkspace)

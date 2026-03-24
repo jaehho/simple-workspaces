@@ -161,6 +161,7 @@ function serializeToSyncItems(workspaces) {
       name: ws.name,
       color: ws.color,
       createdAt: ws.createdAt,
+      lastUsedAt: ws.lastUsedAt || 0,
       tabChunks: chunks.length,
     }
 
@@ -193,6 +194,7 @@ function assembleFromSync(syncData) {
       name: meta.name,
       color: meta.color,
       createdAt: meta.createdAt,
+      lastUsedAt: meta.lastUsedAt || 0,
       tabs,
       // Note: favIconUrl not present in sync tabs — browser re-fetches on restore
     })

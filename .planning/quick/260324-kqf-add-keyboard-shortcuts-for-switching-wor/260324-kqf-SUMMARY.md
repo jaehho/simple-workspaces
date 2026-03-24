@@ -1,72 +1,60 @@
 ---
 phase: quick
 plan: 260324-kqf
-subsystem: background
-tags: [keyboard-shortcuts, commands, workspace-cycling]
+subsystem: manifest
+tags: [keyboard-shortcut, popup, manifest]
 dependency_graph:
   requires: []
-  provides: [keyboard-shortcut-workspace-cycling]
-  affects: [src/manifest.json, src/background/index.js, src/background/workspaces.js]
+  provides: [keyboard-popup-shortcut]
+  affects: [src/manifest.json]
 tech_stack:
   added: []
-  patterns: [browser.commands.onCommand, modular-arithmetic-wrap-around, exclusive-window-ownership]
+  patterns: [firefox-special-command]
 key_files:
   created: []
   modified:
     - src/manifest.json
-    - src/background/index.js
-    - src/background/workspaces.js
 decisions:
-  - "Used browser.windows.getLastFocused() to determine the target window since commands fire in the background context without a sender window"
-  - "Placed onCommand listener at top-level (synchronously) to ensure Firefox event page wakes on keyboard shortcut"
-  - "switchToAdjacentWorkspace skips workspaces active in other windows to preserve exclusive window ownership invariant"
+  - "Use _execute_action (MV3 special command) over custom command + JS handler: zero code, native Firefox support"
+  - "Alt+Shift+W chosen as default: avoids common browser conflicts while being mnemonic (W for Workspaces)"
 metrics:
-  duration: "< 5min"
+  duration: "~5min"
   completed: "2026-03-24"
   tasks_completed: 1
-  files_modified: 3
+  files_modified: 1
 ---
 
-# Quick Task 260324-kqf: Add Keyboard Shortcuts for Switching Workspaces — Summary
+# Quick Task 260324-kqf: Add Keyboard Shortcut to Open Workspace Popup — Summary
 
-**One-liner:** Alt+Shift+Left/Right keyboard shortcuts cycle through workspaces with wrap-around and exclusive window ownership enforcement.
+**One-liner:** Single `_execute_action` manifest command with `Alt+Shift+W` opens the popup via Firefox's native special command mechanism — no JS code required.
 
 ## What Was Built
 
-Two manifest-declared keyboard commands (`next-workspace` / `previous-workspace`) that trigger a background listener which calls a new `switchToAdjacentWorkspace(direction, windowId)` helper. The helper walks the workspace list in the given direction with wrap-around, skips workspaces active in other windows, and delegates to the existing `switchWorkspace` for the actual tab operations.
+A `commands` section was added to `src/manifest.json` with the special Firefox MV3 command name `_execute_action`. Firefox recognises this reserved name and automatically opens the extension's browser action popup when the shortcut is pressed. No `browser.commands.onCommand` listener or background JS is needed.
 
 ## Tasks Completed
 
 | Task | Description | Commit | Files |
 |------|-------------|--------|-------|
-| 1 | Declare commands in manifest, add onCommand listener, add switchToAdjacentWorkspace | 0a2b92d | src/manifest.json, src/background/index.js, src/background/workspaces.js |
+| 1 | Add `_execute_action` command with Alt+Shift+W default to manifest | adc88f1 | src/manifest.json |
 
 ## Key Decisions
 
-1. **`browser.windows.getLastFocused()`** — Commands fire in the background context without a sender window; `getLastFocused()` reliably identifies the window the user is interacting with.
-2. **Top-level listener** — `browser.commands.onCommand.addListener` is registered synchronously at module scope (same as all other listeners) so Firefox's event page wakes up when the shortcut is pressed.
-3. **Exclusive ownership preserved** — `switchToAdjacentWorkspace` reads the window map and builds a `busyIds` set of workspaces active in other windows, skipping them during the directional walk. This matches the invariant enforced in `switchWorkspace`.
-4. **Modular arithmetic** — `((currentIdx + direction * step) % len + len) % len` correctly handles negative wrap-around for the previous-workspace direction.
+1. **`_execute_action` special command** — Firefox MV3 reserves this command name to trigger the browser action popup natively. No JS listener needed, no risk of timing issues or background script wake failures.
+2. **Alt+Shift+W default** — `Ctrl+Shift+W` closes all tabs (too dangerous as a default), `Alt+W` can conflict with app menus. `Alt+Shift+W` is mnemonic and unlikely to conflict with OS or browser shortcuts. Users can remap it in `about:addons` → Manage Extension Shortcuts.
 
 ## Implementation Details
 
-**`src/manifest.json`** — Added top-level `"commands"` block after the `"action"` block:
-- `"next-workspace"`: `Alt+Shift+Right`
-- `"previous-workspace"`: `Alt+Shift+Left`
+**`src/manifest.json`** — Added `"commands"` block after the `"icons"` block:
+- `"_execute_action"`: `Alt+Shift+W`, description "Open Simple Workspaces popup"
 
-**`src/background/workspaces.js`** — Added and exported `switchToAdjacentWorkspace(direction, windowId)` between `switchWorkspace` and `moveTabsToWorkspace`. Reuses existing `switchWorkspace` for actual switch logic.
-
-**`src/background/index.js`** — Added `switchToAdjacentWorkspace` to the existing workspaces import and registered a new `browser.commands.onCommand` listener section between Context Menu Listeners and Message Handler.
-
-## Verification
-
-- ESLint passes (0 errors, 1 expected warning for manifest.json having no JS lint config)
-- Extension loads without errors
-- Human verification pending (see checkpoint)
+No changes to background scripts or popup scripts.
 
 ## Deviations from Plan
 
-None — plan executed exactly as written.
+The original checkpoint implementation had added next-workspace and previous-workspace cycle commands plus a `switchToAdjacentWorkspace` function in `workspaces.js` and a `browser.commands.onCommand` listener in `index.js`. Per user feedback at the checkpoint, those were not the desired approach.
+
+Those changes had not been committed (checkpoint was reached before commit), so no revert was needed — the JS files were already in a clean state. Only the manifest required a new change.
 
 ## Known Stubs
 
@@ -74,7 +62,7 @@ None.
 
 ## Self-Check: PASSED
 
-- src/manifest.json contains "commands" key: FOUND
-- src/background/workspaces.js exports switchToAdjacentWorkspace: FOUND
-- src/background/index.js has browser.commands.onCommand listener: FOUND
-- Commit 0a2b92d: FOUND
+- `src/manifest.json` contains `_execute_action` command: FOUND
+- Commit `adc88f1` exists: confirmed (`git log --oneline` shows it)
+- `npm run lint` (web-ext + eslint): 0 errors, 0 warnings, 0 notices
+- No JS files modified (background/index.js and background/workspaces.js unchanged)

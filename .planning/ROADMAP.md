@@ -33,7 +33,9 @@
   1. The extension loads and operates identically to before — no behavior change is observable
   2. When `browser.storage.sync` fails and `readFromLocal()` is used, corrupted or partial workspace data is rejected rather than passed to callers
   3. Adding new imports to `state.js` or `workspaces.js` does not risk initialization-order errors — the circular dependency is gone
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 05-01-PLAN.md — Break circular dependency and close local fallback validation gap
 
 ### Phase 6: Context Menu
 **Goal**: Users can right-click any tab and move it (or a multi-tab selection) to a different workspace via a submenu
@@ -65,6 +67,6 @@
 | 2. Data Integrity | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 3. Multi-Window Tracking | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 4. Firefox Sync | v1.0 | 2/2 | Complete | 2026-03-21 |
-| 5. Module Integrity | v1.1 | 0/? | Not started | - |
+| 5. Module Integrity | v1.1 | 0/1 | Not started | - |
 | 6. Context Menu | v1.1 | 0/? | Not started | - |
 | 7. New-Window Opening | v1.1 | 0/? | Not started | - |

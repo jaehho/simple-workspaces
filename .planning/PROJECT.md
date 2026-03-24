@@ -27,11 +27,11 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Improve ID generation (crypto.randomUUID) — Validated in Phase 2: data-integrity
 - ✓ Multi-window awareness: show which window owns a workspace, switch to or close that window — Validated in Phase 3: multi-window-tracking
 - ✓ Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota) — Validated in Phase 4: firefox-sync
+- ✓ Fix validateWorkspaceData not called on readFromLocal() fallback path — Validated in Phase 5: module-integrity
+- ✓ Resolve circular dependency state.js <-> workspaces.js — Validated in Phase 5: module-integrity
 
 ### Active
 
-- [ ] Fix validateWorkspaceData not called on readFromLocal() fallback path
-- [ ] Resolve circular dependency state.js <-> workspaces.js
 - [ ] Context menu "Move to {workspace}" for selected tabs (moves tabs + switches)
 - [ ] Clicking workspace from unassigned window opens in new window (remove "Assign Here")
 - [ ] Middle-click or Ctrl+click workspace to open in new window
@@ -68,7 +68,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Chunked sync schema: workspace metadata + tab chunks (25 tabs/chunk, favIconUrl stripped to save space)
 - `migrateIfNeeded()` runs on update/startup — existing local data migrated idempotently
 - No automated tests exist
-- Known tech debt: validateWorkspaceData not called on readFromLocal() fallback path; circular dependency state.js ↔ workspaces.js (latent)
+- Tech debt resolved in Phase 5: circular dependency eliminated, local fallback validation gap closed
 
 ## Constraints
 
@@ -108,4 +108,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-23 after v1.1 milestone start*
+*Last updated: 2026-03-24 after Phase 5: module-integrity complete*

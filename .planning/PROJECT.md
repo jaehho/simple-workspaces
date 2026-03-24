@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Firefox extension that lets users organize browser tabs into named, color-coded workspaces they can switch between. Hardened for production: MV3 compliant, atomic switching with rollback, per-window workspace tracking, and Firefox Sync storage with quota-safe fallback.
+A Firefox extension that lets users organize browser tabs into named, color-coded workspaces they can switch between. Hardened for production: MV3 compliant, atomic switching with rollback, per-window workspace tracking, Firefox Sync storage, context menu tab movement, and new-window opening via click modifiers.
 
 ## Core Value
 
@@ -46,32 +46,25 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - Import/export of workspaces — not requested
 - Automated test suite — valuable but not in this milestone
 
-## Current Milestone: v1.1 Hardening & Tab Movement
+## Current State
 
-**Goal:** Resolve v1.0 tech debt, add context menu tab movement between workspaces, and improve window management for unassigned windows.
-
-**Target features:**
-- Fix validation gap on local storage fallback path
-- Resolve circular dependency between state.js and workspaces.js
-- Right-click context menu "Move to {workspace}" for selected tabs
-- Open workspace in new window from unassigned windows (replacing "Assign Here")
-- Middle-click / Ctrl+click to open any workspace in a new window
+**Shipped v1.1** — all planned features delivered. No active milestone.
 
 ## Context
 
-**Shipped v1.0** with 1,595 LOC (JS + HTML + CSS) across 4 phases, 8 plans.
+**Shipped v1.1** with 1,833 LOC (JS + HTML + CSS) across 7 phases, 13 plans (2 milestones).
 
-- Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js, sync.js), popup/ (popup.js, popup.html, popup.css)
+- Extension code split into ES modules: background/ (index.js, state.js, workspaces.js, messaging.js, sync.js, menus.js), popup/ (popup.js, popup.html, popup.css)
 - Manifest V3 compliant — AMO publishing unblocked
 - Per-window workspace tracking via `windowWorkspaces` session map — each window owns its workspace independently
 - `switchWorkspace()` is atomic — snapshot rollback restores state on partial tab creation failure
 - Storage uses `browser.storage.sync` as primary with automatic `browser.storage.local` fallback at 90% quota
 - Chunked sync schema: workspace metadata + tab chunks (25 tabs/chunk, favIconUrl stripped to save space)
 - `migrateIfNeeded()` runs on update/startup — existing local data migrated idempotently
+- Module graph is acyclic — state.js has zero project imports
+- Right-click "Move to Workspace" context menu with MRU-sorted submenu, multi-tab selection, cross-window move
+- Open workspace in new window via unassigned-window click, Ctrl+click, or middle-click
 - No automated tests exist
-- Tech debt resolved in Phase 5: circular dependency eliminated, local fallback validation gap closed
-- Context menu "Move to Workspace" with dynamic submenu, multi-tab selection, cross-window move (no reload), MRU ordering — Phase 6
-- Open workspace in new window: click from unassigned window, Ctrl+click, or middle-click — Phase 7
 
 ## Constraints
 
@@ -92,6 +85,12 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 | Atomic switch with snapshot rollback | Prevents tab loss on partial switch failure | ✓ Good — v1.0 |
 | Chunked sync schema (25 tabs/chunk, no favIconUrl) | Stays under 8KB per-item limit for storage.sync | ✓ Good — v1.0 |
 | storage.session for window map + switch lock | Per-session state survives background unloads, never syncs | ✓ Good — v1.0 |
+| Move throttledSave to workspaces.js to break circular dep | state.js becomes zero-import; no initialization-order risk | ✓ Good — v1.1 |
+| Storage module (sync.js) owns schema validation | Validation lives beside the data it protects | ✓ Good — v1.1 |
+| menus.onShown dynamic rebuild (not static items) | MRU order and [open] labels stay current without stale data | ✓ Good — v1.1 |
+| Instance ID guard in onShown handler | Prevents stale async fetch from overwriting newer menu open | ✓ Good — v1.1 |
+| Exclusive ownership check in openWorkspaceInNewWindow | If workspace already open elsewhere, focus that window instead of creating duplicate | ✓ Good — v1.1 |
+| Rollback via browser.windows.remove on partial tab creation | Prevents orphan empty windows when tab creation fails | ✓ Good — v1.1 |
 
 ## Evolution
 
@@ -111,4 +110,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after Phase 7: new-window-opening complete*
+*Last updated: 2026-03-24 after v1.1 milestone complete*

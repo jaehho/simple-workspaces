@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.1 Hardening & Tab Movement (Shipped: 2026-03-24)
+
+**Phases completed:** 3 phases, 5 plans, 11 tasks
+
+**Key accomplishments:**
+
+- Circular dependency state.js <-> workspaces.js eliminated and local storage fallback path now validates all data through validateWorkspaceData before returning to callers
+- One-liner:
+- "Move to Workspace" context menu on the tab strip with dynamic MRU-sorted submenu, multi-tab selection, and cross-window detection
+- openWorkspaceInNewWindow function in workspaces.js: creates a browser window, populates it with workspace tabs using the discarded-tab pattern, removes the auto-injected blank tab, handles exclusive ownership by focusing existing windows, and records the windowMap entry
+- Popup UI rewired to open workspaces in new windows via Ctrl+click, middle-click, and unassigned-window click, with banner and assign-here buttons removed and context-sensitive subtitle added
+
+---
+
 ## v1.0 MVP (Shipped: 2026-03-21)
 
 **Phases completed:** 4 phases, 8 plans, 14 tasks

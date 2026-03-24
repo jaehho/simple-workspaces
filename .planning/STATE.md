@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
-status: Milestone complete
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-24T16:08:54.497Z"
+status: v1.1 milestone complete — archived
+stopped_at: Milestone v1.1 complete
+last_updated: "2026-03-24T17:30:00.000Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 3
@@ -17,15 +17,14 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-23)
+See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** Workspaces reliably preserve and restore tab groups without losing data — even across windows, restarts, and reinstalls.
-**Current focus:** Phase 07 — new-window-opening
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
+No active milestone. Next: `/gsd:new-milestone`
 
 ## Performance Metrics
 
@@ -53,25 +52,13 @@ Plan: Not started
 
 All decisions logged in PROJECT.md Key Decisions table.
 
-- [Phase 05]: Move throttledSave to workspaces.js — functions live in the module that owns their primary dependency (saveCurrentWorkspace)
-- [Phase 05]: Move validateWorkspaceData to sync.js — validation belongs at the storage boundary that reads data, not in the CRUD module
-- [Phase 06]: Cross-window source update: re-query window tabs after browser.tabs.move() rather than URL filtering to avoid duplicate URL collisions
-- [Phase 06]: Same-window source update: URL-based Set filtering since tab IDs may not be stable after switchWorkspace
-- [Phase 06]: Sort pinned tabs first before browser.tabs.move() to prevent Firefox silent move failures
-- [Phase 06]: Place menus.create() for parent item inside onInstalled (not top-level) — MV3 event page requires persistent items in onInstalled
-- [Phase 06]: Same-window source cleanup after switchWorkspace: URL Set filter to remove re-serialized moved tabs from source workspace
-- [Phase 07]: openWorkspaceInNewWindow exclusive ownership check omits caller window exclusion — any window owning the target is focused, since the caller always intends a new window
-- [Phase 07]: Rollback on partial tab creation failure closes the new window entirely via browser.windows.remove()
-- [Phase 07]: Ctrl+click uses e.preventDefault() to suppress macOS system context menu before routing to onOpenInNewWindow
-- [Phase 07]: auxclick handler uses e.button !== 1 guard to safely no-op right-click; onOpenInNewWindow closes popup unconditionally without checking background response
-
 ### Pending Todos
 
 None.
 
 ### Blockers/Concerns
 
-None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular dependency and validation gap must be resolved before new code touches those modules.
+None.
 
 ### Quick Tasks Completed
 
@@ -82,5 +69,5 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Milestone v1.1 complete — archived
 Resume file: None

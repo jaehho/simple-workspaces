@@ -126,16 +126,37 @@ async function renderList() {
     li.appendChild(info);
     li.appendChild(actions);
 
-    // Click to switch or focus owning window
+    // Click to switch, focus owning window, or open in new window
     li.addEventListener('click', (e) => {
       // Don't act if clicking an action button
-      if (e.target.closest('.ws-actions')) return;
-      if (isInUse) {
-        onFocusWindow(owningWindowId);
-      } else if (!isActive) {
-        onSwitch(ws.id);
+      if (e.target.closest('.ws-actions')) return
+
+      // D-12: Ctrl+click opens in new window (from any window state)
+      if (e.ctrlKey) {
+        e.preventDefault()
+        if (!isActive) onOpenInNewWindow(ws.id)  // D-13: ignore if active here
+        return
       }
-    });
+
+      // D-01: If workspace is active in another window, focus that window
+      if (isInUse) {
+        onFocusWindow(owningWindowId)
+      } else if (activeWorkspaceId === null) {
+        // D-09: Unassigned window — open in new window (WIN-01)
+        if (!isActive) onOpenInNewWindow(ws.id)
+      } else if (!isActive) {
+        // D-10: Assigned window — switch in current window (existing behavior)
+        onSwitch(ws.id)
+      }
+    })
+
+    // D-11: Middle-click opens in new window (WIN-03)
+    li.addEventListener('auxclick', (e) => {
+      if (e.button !== 1) return  // only middle-click
+      if (e.target.closest('.ws-actions')) return
+      e.preventDefault()  // suppress autoscroll (Windows) / paste (Linux/macOS)
+      if (!isActive) onOpenInNewWindow(ws.id)  // D-13: ignore if active here
+    })
 
     // Edit
     editBtn.addEventListener('click', (e) => {
@@ -170,6 +191,11 @@ async function onSwitch(workspaceId) {
 async function onFocusWindow(targetWindowId) {
   await browser.runtime.sendMessage({ action: 'focusWindow', targetWindowId });
   window.close();
+}
+
+async function onOpenInNewWindow(workspaceId) {
+  await browser.runtime.sendMessage({ action: 'openWorkspaceInNewWindow', workspaceId })
+  window.close()
 }
 
 async function onAdd() {

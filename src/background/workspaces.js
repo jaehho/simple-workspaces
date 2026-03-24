@@ -417,6 +417,91 @@ export async function assignWorkspace(workspaceId, windowId) {
   return { success: true }
 }
 
+// ── Open Workspace in New Window ────────────────────────────
+
+export async function openWorkspaceInNewWindow(targetId) {
+  await setSessionState({ isSwitching: true })
+  try {
+    const workspaces = await getWorkspaces()
+    if (!workspaces.length) throw new Error('No workspaces found')
+
+    // D-01/D-02: If already active in any window, focus that window instead
+    const windowMap = await getWindowMap()
+    for (const [wid, wsId] of Object.entries(windowMap)) {
+      if (wsId === targetId) {
+        await browser.windows.update(Number(wid), { focused: true })
+        return { success: true, focusedExisting: true }
+      }
+    }
+
+    const target = workspaces.find(w => w.id === targetId)
+    if (!target) throw new Error('Target workspace not found')
+
+    // Create new empty window — Firefox always injects one blank tab
+    const newWindow = await browser.windows.create({ focused: true })
+    const blankTabId = newWindow.tabs[0].id
+
+    const tabsToCreate = target.tabs.length > 0
+      ? target.tabs
+      : [{ url: 'about:newtab', title: 'New Tab', pinned: false }]
+
+    const createdTabIds = []
+    for (let i = 0; i < tabsToCreate.length; i++) {
+      const t = tabsToCreate[i]
+      const isAbout = !t.url || t.url.startsWith('about:')
+      const createProps = {
+        windowId: newWindow.id,
+        active: i === 0,
+        pinned: t.pinned || false,
+      }
+
+      if (!isAbout) {
+        createProps.url = t.url
+        if (i > 0) {
+          createProps.discarded = true
+          createProps.title = t.title || t.url
+        }
+      }
+
+      try {
+        const created = await browser.tabs.create(createProps)
+        createdTabIds.push(created.id)
+      } catch (err) {
+        console.warn('[Workspaces] Tab create fallback for:', t.url, err)
+        try {
+          delete createProps.discarded
+          delete createProps.title
+          const created = await browser.tabs.create(createProps)
+          createdTabIds.push(created.id)
+        } catch (err2) {
+          console.error('[Workspaces] Tab create failed entirely:', err2)
+        }
+      }
+    }
+
+    // Rollback on partial failure — close the entire new window
+    if (createdTabIds.length !== tabsToCreate.length) {
+      await browser.windows.remove(newWindow.id)
+      return { success: false, error: 'New window aborted: not all tabs could be created' }
+    }
+
+    // Remove the auto-injected blank tab
+    await browser.tabs.remove(blankTabId)
+
+    target.lastUsedAt = Date.now()
+    await saveWorkspaces(workspaces)
+    await setWindowEntry(newWindow.id, targetId)
+    updateBadge(target, newWindow.id)
+
+    return { success: true }
+  } catch (e) {
+    console.error('[Workspaces] Open in new window error:', e)
+    return { success: false, error: e.message }
+  } finally {
+    await setSessionState({ isSwitching: false })
+  }
+}
+
 // ── Reclaim Workspaces on Restart (D-10) ────────────────────
 
 export async function reclaimWorkspaces() {

@@ -6,6 +6,7 @@ import { removeWindowEntry, getWindowMap } from './state.js'
 import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces, throttledSave } from './workspaces.js'
 import { handleMessage } from './messaging.js'
 import { migrateIfNeeded, getWorkspaces } from './sync.js'
+import { handleMenuShown, handleMenuClicked, PARENT_MENU_ID } from './menus.js'
 
 // ── Tab Event Listeners (live-save via throttle) ────────────
 browser.tabs.onCreated.addListener((tab) => throttledSave(tab.windowId))
@@ -39,6 +40,10 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
   }
 })
 
+// ── Context Menu Listeners ──────────────────────────────────
+browser.menus.onShown.addListener(handleMenuShown)
+browser.menus.onClicked.addListener(handleMenuClicked)
+
 // ── Message Handler ─────────────────────────────────────────
 browser.runtime.onMessage.addListener(handleMessage)
 
@@ -51,6 +56,13 @@ browser.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'update') {
     await migrateIfNeeded()
   }
+
+  // Create persistent parent menu item (children built dynamically in onShown)
+  browser.menus.create({
+    id: PARENT_MENU_ID,
+    title: 'Move to Workspace',
+    contexts: ['tab'],
+  })
 })
 
 browser.runtime.onStartup.addListener(async () => {

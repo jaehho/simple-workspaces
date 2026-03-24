@@ -37,16 +37,16 @@ Declared values (must be multiples of 4) — carried from existing popup.css tok
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline padding (e.g. `.btn-icon` padding: 4px 6px) |
-| sm | 8px | Compact element spacing (e.g. `.workspace-item` padding: 8px 14px) |
+| sm | 8px | Compact element spacing (e.g. `.workspace-item` padding: 8px) |
 | md | 16px | Default element spacing |
 | lg | 24px | Section padding |
 | xl | 32px | Layout gaps |
 | 2xl | 48px | Major section breaks |
 | 3xl | 64px | Page-level spacing |
 
-Exceptions: The header uses 12px top/bottom padding (between xs and sm — existing value, do not change). The `.ws-unassigned-banner` and `.workspace-item` both use 14px horizontal padding (existing value, do not change).
-
 **Phase 6 usage:** No new spacing tokens introduced. The `menus.js` module introduces no HTML/CSS surfaces.
+
+**Annotation (existing CSS values, not design decisions for this phase):** The header uses 12px top/bottom padding and some elements use 14px horizontal padding — these are immutable existing values in `src/popup/popup.css` and are not part of the Phase 6 design contract.
 
 **Source:** Extracted from `src/popup/popup.css` (existing, do not override).
 
@@ -54,18 +54,19 @@ Exceptions: The header uses 12px top/bottom padding (between xs and sm — exist
 
 ## Typography
 
-Existing popup typography — carried forward, no new type roles introduced in Phase 6:
+Existing popup typography — carried forward. Only the two weights relevant to Phase 6 context are declared. No new type roles are introduced in Phase 6.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 13px | 400 (regular) | 1.5 (default) |
 | Label / subtext | 11px | 400 (regular) | 1.3 |
 | Heading (modal h2, header h1) | 14px | 600 (semibold) | 1.2 |
-| Workspace name | 13px | 500 (medium) | 1.5 |
 
 **Phase 6 note:** Native context menu items (the "Move to Workspace" parent and all workspace submenu entries) use Firefox's system font and size. Extension code cannot control context menu typography. The only design-relevant decision here is the text content of each label — governed by the Copywriting Contract below.
 
-**Source:** Extracted from `src/popup/popup.css` (body: 13px, `.ws-name`: font-weight 500, `.ws-tabs`: 11px, `.header h1`: 14px/600). Defaults applied for line-height where not explicitly set.
+**Annotation (existing CSS value, not a Phase 6 decision):** `.ws-name` in `src/popup/popup.css` uses font-weight 500. This is an immutable existing value and is not declared as part of the Phase 6 type contract, which introduces no new type roles.
+
+**Source:** Extracted from `src/popup/popup.css` (body: 13px, `.ws-tabs`: 11px, `.header h1`: 14px/600). Defaults applied for line-height where not explicitly set.
 
 ---
 

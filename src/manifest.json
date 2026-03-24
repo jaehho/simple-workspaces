@@ -5,7 +5,8 @@
   "description": "Save and switch between tab workspaces with automatic live-saving. Tabs are unloaded when switching to save RAM.",
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "menus"
   ],
   "background": {
     "scripts": [

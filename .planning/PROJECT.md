@@ -32,7 +32,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 
 ### Active
 
-- [ ] Context menu "Move to {workspace}" for selected tabs (moves tabs + switches)
+- ✓ Context menu "Move to {workspace}" for selected tabs (moves tabs + switches) — Validated in Phase 6: context-menu
 - [ ] Clicking workspace from unassigned window opens in new window (remove "Assign Here")
 - [ ] Middle-click or Ctrl+click workspace to open in new window
 
@@ -69,6 +69,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - `migrateIfNeeded()` runs on update/startup — existing local data migrated idempotently
 - No automated tests exist
 - Tech debt resolved in Phase 5: circular dependency eliminated, local fallback validation gap closed
+- Context menu "Move to Workspace" with dynamic submenu, multi-tab selection, cross-window move (no reload), MRU ordering — Phase 6
 
 ## Constraints
 
@@ -108,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after Phase 5: module-integrity complete*
+*Last updated: 2026-03-24 after Phase 6: context-menu complete*

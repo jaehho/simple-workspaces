@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
 status: unknown
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-24T09:25:27.542Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-24T09:40:10.875Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -43,6 +43,7 @@ Plan: 2 of 2
 | Phase 04-firefox-sync P02 | 3min | 3 tasks | 3 files |
 | Phase 05 P01 | 2 | 2 tasks | 4 files |
 | Phase 06 P01 | 94s | 2 tasks | 2 files |
+| Phase 06-context-menu P02 | 30 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -55,6 +56,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06]: Cross-window source update: re-query window tabs after browser.tabs.move() rather than URL filtering to avoid duplicate URL collisions
 - [Phase 06]: Same-window source update: URL-based Set filtering since tab IDs may not be stable after switchWorkspace
 - [Phase 06]: Sort pinned tabs first before browser.tabs.move() to prevent Firefox silent move failures
+- [Phase 06]: Place menus.create() for parent item inside onInstalled (not top-level) — MV3 event page requires persistent items in onInstalled
+- [Phase 06]: Same-window source cleanup after switchWorkspace: URL Set filter to remove re-serialized moved tabs from source workspace
 
 ### Pending Todos
 
@@ -73,5 +76,5 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 06-01-PLAN.md
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

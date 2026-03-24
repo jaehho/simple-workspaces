@@ -14,9 +14,9 @@ Requirements for v1.1 Hardening & Tab Movement. Each maps to roadmap phases.
 
 ### Context Menu
 
-- [ ] **MENU-01**: User can right-click selected tab(s) and see a "Move to Workspace" submenu listing each existing workspace
+- [x] **MENU-01**: User can right-click selected tab(s) and see a "Move to Workspace" submenu listing each existing workspace
 - [x] **MENU-02**: Moving tabs via context menu removes them from the source workspace, adds them to the target, and switches to the target workspace
-- [ ] **MENU-03**: Context menu workspace list updates dynamically when workspaces are created, renamed, or deleted
+- [x] **MENU-03**: Context menu workspace list updates dynamically when workspaces are created, renamed, or deleted
 - [x] **MENU-04**: Multi-tab selection (Ctrl+click / Shift+click on tabs) is respected — all highlighted tabs move together
 
 ### Window Management
@@ -53,9 +53,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | DEBT-01 | Phase 5 | Complete |
 | DEBT-02 | Phase 5 | Complete |
-| MENU-01 | Phase 6 | Pending |
+| MENU-01 | Phase 6 | Complete |
 | MENU-02 | Phase 6 | Complete |
-| MENU-03 | Phase 6 | Pending |
+| MENU-03 | Phase 6 | Complete |
 | MENU-04 | Phase 6 | Complete |
 | WIN-01 | Phase 7 | Pending |
 | WIN-02 | Phase 7 | Pending |

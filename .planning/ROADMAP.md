@@ -60,9 +60,9 @@ Plans:
   2. The "Assign Here" button and the unassigned-window banner are no longer visible in the popup
   3. Middle-clicking a workspace in the popup opens it in a new window regardless of the current window's assignment state
   4. Ctrl+clicking a workspace in the popup opens it in a new window without switching the current window's workspace
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 07-01-PLAN.md — Add openWorkspaceInNewWindow backend function and message routing
+- [x] 07-01-PLAN.md — Add openWorkspaceInNewWindow backend function and message routing
 - [ ] 07-02-PLAN.md — Remove banner/assign UI, add subtitle, rewire click handlers for new-window opening
 
 ## Progress
@@ -75,4 +75,4 @@ Plans:
 | 4. Firefox Sync | v1.0 | 2/2 | Complete | 2026-03-21 |
 | 5. Module Integrity | v1.1 | 1/1 | Complete   | 2026-03-24 |
 | 6. Context Menu | v1.1 | 2/2 | Complete   | 2026-03-24 |
-| 7. New-Window Opening | v1.1 | 0/2 | Not started | - |
+| 7. New-Window Opening | v1.1 | 1/2 | In Progress|  |

@@ -34,15 +34,15 @@ Declared values (multiples of 4):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon button padding (`padding: 4px 6px`), action button padding (`padding: 3px`) |
-| sm | 8px | Workspace list item vertical padding (`padding: 8px 14px`), modal action gap |
-| md | 12px | Header top padding (`padding: 12px 14px 8px`) |
+| xs | 4px | Icon button padding (`padding: 4px 6px`), action button padding |
+| sm | 8px | Workspace list item vertical padding (`padding: 8px`), modal action gap |
+| md | 12px | Header top padding (`padding: 12px`) |
 | lg | 16px | Modal content padding offset, color picker margin-bottom |
-| xl | 18px | Modal content padding (`padding: 18px`) |
+| xl | 16px | Modal content padding (`padding: 16px`) |
 
-Exceptions:
-- Header horizontal padding: 14px (carries over from existing `.header` rule — do not change)
-- Workspace list item horizontal padding: 14px (carries over — do not change)
+Exceptions (inherited CSS implementation details — not spacing tokens, do not change):
+- Header horizontal padding: 14px (carries over from existing `.header` rule)
+- Workspace list item horizontal padding: 14px (carries over from existing `.ws-item` rule)
 - Subtitle `margin-top`: 1px (tight coupling to `h1` baseline — use exactly 1px as specified in RESEARCH.md)
 - Active-item left accent bar: `top: 4px; bottom: 4px; width: 3px` (fixed visual detail — do not change)
 
@@ -55,13 +55,23 @@ Source: measured from `src/popup/popup.css` existing rules; no changes to spacin
 | Role | Size | Weight | Line Height | Color |
 |------|------|--------|-------------|-------|
 | Heading (popup title) | 14px | 600 (semibold) | 1.2 | `#cdd6f4` |
-| Body (workspace name) | 13px | 500 (medium) | 1.4 | `#cdd6f4` |
+| Body (workspace name) | 13px | 400 (regular) | 1.4 | `#cdd6f4` |
 | Label / meta (tab count, modal labels) | 11px | 400 (regular) | 1.3 | `#6c7086` |
 | Subtitle (new element this phase) | 10px | 400 (regular) | 1.3 | `#6c7086` |
 
-Only two weights are in use: **400** (regular) and **600** (semibold). Weight 500 is rendered as medium by the system font stack and is an established existing pattern — do not introduce a third CSS `font-weight` value.
+Formal type scale uses exactly 2 weights: **400** (regular) and **600** (semibold).
+
+Inherited CSS note: The existing `.ws-name { font-weight: 500 }` rule in `popup.css` is a pre-existing value set by the system font stack rendering. It is not a formal design token and must not be added to the type scale contract. Leave this CSS value unchanged; do not introduce a third `font-weight` declaration in Phase 7.
 
 Source: `src/popup/popup.css` `.header h1`, `.ws-name`, `.ws-tabs`, `.ws-unassigned-heading`. Subtitle values from RESEARCH.md `popup.css subtitle style` sample.
+
+---
+
+## Focal Point
+
+Primary visual anchor: workspace list items (`.ws-item` rows) — the main interactive surface users scan and click.
+
+The subtitle (`.ws-subtitle`) is secondary supporting text that provides a keyboard hint. It must not compete visually with workspace names: 10px, muted color `#6c7086`, weight 400.
 
 ---
 
@@ -147,6 +157,8 @@ The `.header` flex layout gains a `.header-text` wrapper `<div>` that stacks `<h
   margin-top: 1px;
 }
 ```
+
+Note: `margin-top: 1px` on `.ws-subtitle` is an inherited CSS implementation detail (tight coupling to `h1` baseline), not a spacing token from the formal scale.
 
 **Subtitle text values by window state (D-07, D-08):**
 

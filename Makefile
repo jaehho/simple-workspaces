@@ -6,8 +6,10 @@ SHELL := /bin/bash
 include .env
 export
 
-VERSION = $(shell node -p "require('./package.json').version")
-XPI     = web-ext-artifacts/simple_workspaces-$(VERSION).zip
+VERSION  = $(shell node -p "require('./package.json').version")
+XPI      = web-ext-artifacts/simple_workspaces-$(VERSION).zip
+ADDON_ID = simple-workspaces@jaehho
+FF_PROF  = $(shell find ~/.config/mozilla/firefox ~/.mozilla/firefox -maxdepth 1 -name '*.dev-edition-default' -type d 2>/dev/null | head -1)
 
 ## General
 help: ## Show this help message
@@ -19,12 +21,10 @@ help: ## Show this help message
 		     /^[a-zA-Z_%-]+:/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 ## Development
-dev: build install ## Build and install locally (no version bump)
-
-start: ## Run extension in Firefox with hot reload
+dev: ## Run extension in Firefox with hot reload
 	npx web-ext run --source-dir src --firefox=firefox-developer-edition
 
-start-android: ## Run extension on Firefox Android
+dev-android: ## Run extension on Firefox Android with hot reload
 	npx web-ext run --source-dir src --target=firefox-android
 
 lint: ## Run all linters
@@ -32,7 +32,7 @@ lint: ## Run all linters
 	npx eslint src/
 
 ## Publishing
-publish: bump build sign ## Bump version, build, and submit to AMO
+publish: bump build install sign ## Bump version, build, install locally, and submit to AMO
 
 bump: ## Bump patch version in package.json and manifest.json
 	npm version patch --no-git-tag-version
@@ -48,8 +48,16 @@ build: ## Build .xpi artifact
 sign: ## Submit to AMO for signing
 	npx web-ext sign --source-dir src --channel listed --amo-metadata amo-metadata.json
 
-install: ## Install built .xpi in Firefox Developer Edition
-	firefox-developer-edition $(XPI)
+sign-self: bump ## Sign for self-install (no AMO review)
+	npx web-ext sign --source-dir src --channel unlisted
+
+install: ## Install .xpi into Firefox Dev Edition profile (restart Firefox to load)
+	@test -n "$(FF_PROF)" || { echo "Error: no dev-edition-default profile found"; exit 1; }
+	mkdir -p "$(FF_PROF)/extensions"
+	cp $(XPI) "$(FF_PROF)/extensions/$(ADDON_ID).xpi"
+	@echo "Installed to $(FF_PROF)/extensions/$(ADDON_ID).xpi"
+	@echo "Firefox killed. Reopen to load the update."
+	kill $$(pidof firefox-developer-edition) 2>/dev/null || true
 
 ## Maintenance
 clean: ## Remove build artifacts

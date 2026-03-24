@@ -1,6 +1,6 @@
 {
   "name": "simple-workspaces",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "type": "module",
   "description": "Firefox extension — save and switch between tab workspaces with automatic live-saving.",

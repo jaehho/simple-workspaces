@@ -262,18 +262,25 @@ export async function moveTabsToWorkspace(tabs, targetWsId, sourceWindowId) {
       // Focus target window (D-02/D-03)
       await browser.windows.update(targetWindowId, { focused: true })
     } else {
-      // Same-window: serialize moved tabs into target, remove from source, then switch
+      // Same-window: add moved tabs to target, switch, then fix source
       const movedTabData = serializeTabs(tabs)
       targetWs.tabs = [...targetWs.tabs, ...movedTabData]
-
-      if (sourceWs) {
-        const movedUrls = new Set(tabs.map(t => t.url))
-        sourceWs.tabs = sourceWs.tabs.filter(t => !movedUrls.has(t.url))
-      }
-
       targetWs.lastUsedAt = Date.now()
       await saveWorkspaces(workspaces)
+
+      // switchWorkspace re-serializes source from live window state
+      // (moved tabs still exist as browser tabs), so fix up afterward
       await switchWorkspace(targetWsId, sourceWindowId)
+
+      // Remove moved tabs from source — switchWorkspace re-added them
+      // when it serialized the window before switching
+      const updated = await getWorkspaces()
+      const src = updated.find(w => w.id === sourceWsId)
+      if (src) {
+        const movedUrls = new Set(tabs.map(t => t.url))
+        src.tabs = src.tabs.filter(t => !movedUrls.has(t.url))
+        await saveWorkspaces(updated)
+      }
     }
 
     return { success: true }

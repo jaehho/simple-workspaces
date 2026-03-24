@@ -66,8 +66,9 @@ None.
 |---|-------------|------|--------|-----------|
 | 260321-oyr | Fix edit/new workspace modal cutoff in popup | 2026-03-21 | 6a250dd | [260321-oyr-the-edit-workspace-popup-and-new-workspa](./quick/260321-oyr-the-edit-workspace-popup-and-new-workspa/) |
 | 260324-kqf | Add keyboard shortcut to open workspace popup (Alt+Shift+W) | 2026-03-24 | adc88f1 | [260324-kqf-add-keyboard-shortcuts-for-switching-wor](./quick/260324-kqf-add-keyboard-shortcuts-for-switching-wor/) |
+| 260324-kzp | Add hjkl and arrow key navigation to workspace popup list | 2026-03-24 | dfbafba | [260324-kzp-add-hjkl-and-arrow-key-navigation-to-wor](./quick/260324-kzp-add-hjkl-and-arrow-key-navigation-to-wor/) |
 
 ## Session Continuity
 
-Last activity: 2026-03-24 - Completed quick task 260324-kqf: Add keyboard shortcut to open workspace popup
+Last activity: 2026-03-24 - Completed quick task 260324-kzp: Add hjkl and arrow key navigation to workspace popup list
 Resume file: None

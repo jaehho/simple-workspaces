@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Simple Workspaces",
-  "version": "1.0.6",
+  "version": "1.0.9",
   "description": "Save and switch between tab workspaces with automatic live-saving. Tabs are unloaded when switching to save RAM.",
   "permissions": [
     "tabs",
@@ -23,30 +23,16 @@
     }
   },
   "commands": {
-    "next-workspace": {
-      "suggested_key": {
-        "default": "Alt+Shift+Right"
-      },
-      "description": "Switch to next workspace"
-    },
-    "previous-workspace": {
-      "suggested_key": {
-        "default": "Alt+Shift+Left"
-      },
-      "description": "Switch to previous workspace"
-    }
-  },
-  "icons": {
-    "48": "icons/icon-48.svg",
-    "96": "icons/icon-96.svg"
-  },
-  "commands": {
     "_execute_action": {
       "suggested_key": {
         "default": "Alt+Shift+W"
       },
       "description": "Open Simple Workspaces popup"
     }
+  },
+  "icons": {
+    "48": "icons/icon-48.svg",
+    "96": "icons/icon-96.svg"
   },
   "browser_specific_settings": {
     "gecko": {

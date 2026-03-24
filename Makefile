@@ -57,7 +57,7 @@ install: ## Install .xpi into Firefox Dev Edition profile (restart Firefox to lo
 	cp $(XPI) "$(FF_PROF)/extensions/$(ADDON_ID).xpi"
 	@echo "Installed to $(FF_PROF)/extensions/$(ADDON_ID).xpi"
 	@echo "Firefox killed. Reopen to load the update."
-	kill $$(pidof firefox-developer-edition) 2>/dev/null || true
+	kill $$(pidof firefox) 2>/dev/null || true
 
 ## Maintenance
 clean: ## Remove build artifacts

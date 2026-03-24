@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
 status: unknown
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-03-24T09:56:04.366Z"
+stopped_at: Phase 7 UI-SPEC approved
+last_updated: "2026-03-24T11:08:56.278Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 3
@@ -76,5 +76,5 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 06-02-PLAN.md
-Resume file: None
+Stopped at: Phase 7 UI-SPEC approved
+Resume file: .planning/phases/07-new-window-opening/07-UI-SPEC.md

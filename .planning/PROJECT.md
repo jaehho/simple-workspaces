@@ -29,12 +29,13 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - ✓ Storage migration from `browser.storage.local` to `browser.storage.sync` (with local fallback for quota) — Validated in Phase 4: firefox-sync
 - ✓ Fix validateWorkspaceData not called on readFromLocal() fallback path — Validated in Phase 5: module-integrity
 - ✓ Resolve circular dependency state.js <-> workspaces.js — Validated in Phase 5: module-integrity
+- ✓ Context menu "Move to {workspace}" for selected tabs (moves tabs + switches) — Validated in Phase 6: context-menu
+- ✓ Clicking workspace from unassigned window opens in new window (remove "Assign Here") — Validated in Phase 7: new-window-opening
+- ✓ Middle-click or Ctrl+click workspace to open in new window — Validated in Phase 7: new-window-opening
 
 ### Active
 
-- ✓ Context menu "Move to {workspace}" for selected tabs (moves tabs + switches) — Validated in Phase 6: context-menu
-- [ ] Clicking workspace from unassigned window opens in new window (remove "Assign Here")
-- [ ] Middle-click or Ctrl+click workspace to open in new window
+(No active requirements — all v1.1 requirements validated)
 
 ### Out of Scope
 
@@ -70,6 +71,7 @@ Workspaces reliably preserve and restore tab groups without losing data — even
 - No automated tests exist
 - Tech debt resolved in Phase 5: circular dependency eliminated, local fallback validation gap closed
 - Context menu "Move to Workspace" with dynamic submenu, multi-tab selection, cross-window move (no reload), MRU ordering — Phase 6
+- Open workspace in new window: click from unassigned window, Ctrl+click, or middle-click — Phase 7
 
 ## Constraints
 
@@ -109,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-24 after Phase 6: context-menu complete*
+*Last updated: 2026-03-24 after Phase 7: new-window-opening complete*

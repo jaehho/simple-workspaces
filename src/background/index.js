@@ -3,7 +3,7 @@
 // Firefox event pages only wake for events with top-level listeners.
 
 import { removeWindowEntry, getWindowMap } from './state.js'
-import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces, throttledSave } from './workspaces.js'
+import { initDefaultWorkspace, updateBadge, saveCurrentWorkspace, reclaimWorkspaces, throttledSave, switchToAdjacentWorkspace } from './workspaces.js'
 import { handleMessage } from './messaging.js'
 import { migrateIfNeeded, getWorkspaces } from './sync.js'
 import { handleMenuShown, handleMenuClicked, PARENT_MENU_ID } from './menus.js'
@@ -43,6 +43,15 @@ browser.windows.onFocusChanged.addListener(async (windowId) => {
 // ── Context Menu Listeners ──────────────────────────────────
 browser.menus.onShown.addListener(handleMenuShown)
 browser.menus.onClicked.addListener(handleMenuClicked)
+
+// ── Keyboard Shortcut Listeners ──────────────────────────────
+browser.commands.onCommand.addListener(async (command) => {
+  if (command !== 'next-workspace' && command !== 'previous-workspace') return
+
+  const direction = command === 'next-workspace' ? 1 : -1
+  const win = await browser.windows.getLastFocused()
+  await switchToAdjacentWorkspace(direction, win.id)
+})
 
 // ── Message Handler ─────────────────────────────────────────
 browser.runtime.onMessage.addListener(handleMessage)

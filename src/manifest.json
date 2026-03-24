@@ -22,6 +22,20 @@
       "96": "icons/icon-96.svg"
     }
   },
+  "commands": {
+    "next-workspace": {
+      "suggested_key": {
+        "default": "Alt+Shift+Right"
+      },
+      "description": "Switch to next workspace"
+    },
+    "previous-workspace": {
+      "suggested_key": {
+        "default": "Alt+Shift+Left"
+      },
+      "description": "Switch to previous workspace"
+    }
+  },
   "icons": {
     "48": "icons/icon-48.svg",
     "96": "icons/icon-96.svg"

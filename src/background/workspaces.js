@@ -213,6 +213,39 @@ export async function switchWorkspace(targetId, windowId) {
   }
 }
 
+// ── Switch to Adjacent Workspace ────────────────────────────
+
+export async function switchToAdjacentWorkspace(direction, windowId) {
+  const workspaces = await getWorkspaces()
+  if (workspaces.length <= 1) return { success: true }
+
+  const windowMap = await getWindowMap()
+  const currentWsId = windowMap[String(windowId)]
+  if (!currentWsId) return { success: false, error: 'No workspace assigned to this window' }
+
+  const currentIdx = workspaces.findIndex(w => w.id === currentWsId)
+  if (currentIdx === -1) return { success: false, error: 'Current workspace not found' }
+
+  // Build set of workspace IDs active in OTHER windows (exclusive ownership)
+  const busyIds = new Set()
+  for (const [wid, wsId] of Object.entries(windowMap)) {
+    if (wsId && wid !== String(windowId)) busyIds.add(wsId)
+  }
+
+  // Walk in `direction`, wrapping around, skipping busy workspaces
+  const len = workspaces.length
+  for (let step = 1; step < len; step++) {
+    const candidateIdx = ((currentIdx + direction * step) % len + len) % len
+    const candidate = workspaces[candidateIdx]
+    if (!busyIds.has(candidate.id)) {
+      return switchWorkspace(candidate.id, windowId)
+    }
+  }
+
+  // Every other workspace is busy in another window
+  return { success: false, error: 'No available workspace to switch to' }
+}
+
 // ── Move Tabs to Workspace ──────────────────────────────────
 
 export async function moveTabsToWorkspace(tabs, targetWsId, sourceWindowId) {

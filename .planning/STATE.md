@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Hardening & Tab Movement
-status: Ready to execute
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-24T15:41:08.886Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-03-24T15:52:54.468Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -45,6 +45,7 @@ Plan: 2 of 2
 | Phase 06 P01 | 94s | 2 tasks | 2 files |
 | Phase 06-context-menu P02 | 30 | 3 tasks | 4 files |
 | Phase 07 P01 | 1 | 1 tasks | 2 files |
+| Phase 07 P02 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,8 @@ All decisions logged in PROJECT.md Key Decisions table.
 - [Phase 06]: Same-window source cleanup after switchWorkspace: URL Set filter to remove re-serialized moved tabs from source workspace
 - [Phase 07]: openWorkspaceInNewWindow exclusive ownership check omits caller window exclusion — any window owning the target is focused, since the caller always intends a new window
 - [Phase 07]: Rollback on partial tab creation failure closes the new window entirely via browser.windows.remove()
+- [Phase 07]: Ctrl+click uses e.preventDefault() to suppress macOS system context menu before routing to onOpenInNewWindow
+- [Phase 07]: auxclick handler uses e.button !== 1 guard to safely no-op right-click; onOpenInNewWindow closes popup unconditionally without checking background response
 
 ### Pending Todos
 
@@ -79,5 +82,5 @@ None. Phase 5 must complete before Phase 6 or Phase 7 begin — circular depende
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None

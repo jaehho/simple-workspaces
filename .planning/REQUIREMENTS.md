@@ -22,7 +22,7 @@ Requirements for v1.1 Hardening & Tab Movement. Each maps to roadmap phases.
 ### Window Management
 
 - [x] **WIN-01**: Clicking a workspace from an unassigned window opens it in a new window instead of overriding the current window
-- [ ] **WIN-02**: "Assign Here" buttons and unassigned-window banner are removed from the popup UI
+- [x] **WIN-02**: "Assign Here" buttons and unassigned-window banner are removed from the popup UI
 - [x] **WIN-03**: User can middle-click a workspace to open it in a new window (from any window state)
 - [x] **WIN-04**: User can Ctrl+click a workspace to open it in a new window (from any window state)
 
@@ -58,7 +58,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MENU-03 | Phase 6 | Complete |
 | MENU-04 | Phase 6 | Complete |
 | WIN-01 | Phase 7 | Complete |
-| WIN-02 | Phase 7 | Pending |
+| WIN-02 | Phase 7 | Complete |
 | WIN-03 | Phase 7 | Complete |
 | WIN-04 | Phase 7 | Complete |
 

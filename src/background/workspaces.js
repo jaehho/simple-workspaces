@@ -450,6 +450,98 @@ export async function assignWorkspace(workspaceId, windowId) {
   return { success: true }
 }
 
+// ── Open Workspace in Current (Unassigned) Window ───────────
+
+export async function openWorkspaceInCurrentWindow(targetId, windowId) {
+  await setSessionState({ isSwitching: true })
+  const createdTabIds = []
+
+  try {
+    const workspaces = await getWorkspaces()
+    if (!workspaces.length) throw new Error('No workspaces found')
+
+    // Exclusive ownership check (D-01): reject if targetId is active in another window
+    const windowMap = await getWindowMap()
+    for (const [wid, wsId] of Object.entries(windowMap)) {
+      if (wsId === targetId && wid !== String(windowId)) {
+        return { success: false, error: 'Workspace active in another window' }
+      }
+    }
+
+    const target = workspaces.find(w => w.id === targetId)
+    if (!target) throw new Error('Target workspace not found')
+
+    // Determine tabs to create from target workspace
+    const tabsToCreate = target.tabs.length > 0
+      ? target.tabs
+      : [{ url: 'about:newtab', title: 'New Tab', pinned: false }]
+
+    // Query old tabs BEFORE creating new ones
+    const currentTabs = await browser.tabs.query({ windowId })
+    const oldTabIds = currentTabs.map(t => t.id)
+
+    // Create target workspace tabs in the current window
+    for (let i = 0; i < tabsToCreate.length; i++) {
+      const t = tabsToCreate[i]
+      const isAbout = !t.url || t.url.startsWith('about:')
+      const createProps = {
+        windowId,
+        active: i === 0,
+        pinned: t.pinned || false,
+      }
+
+      if (!isAbout) {
+        createProps.url = t.url
+        if (i > 0) {
+          createProps.discarded = true
+          createProps.title = t.title || t.url
+        }
+      }
+
+      try {
+        const created = await browser.tabs.create(createProps)
+        createdTabIds.push(created.id)
+      } catch (err) {
+        console.warn('[Workspaces] Tab create fallback for:', t.url, err)
+        try {
+          delete createProps.discarded
+          delete createProps.title
+          const created = await browser.tabs.create(createProps)
+          createdTabIds.push(created.id)
+        } catch (err2) {
+          console.error('[Workspaces] Tab create failed entirely:', err2)
+        }
+      }
+    }
+
+    // Atomicity check — rollback if not all tabs were created
+    if (createdTabIds.length !== tabsToCreate.length) {
+      if (createdTabIds.length > 0) {
+        await browser.tabs.remove(createdTabIds)
+      }
+      return { success: false, error: 'Open in current window aborted: not all tabs could be created' }
+    }
+
+    // Remove old tabs (the about:newtab placeholder)
+    if (oldTabIds.length > 0) {
+      await browser.tabs.remove(oldTabIds)
+    }
+
+    target.lastUsedAt = Date.now()
+    await saveWorkspaces(workspaces)
+    await setWindowEntry(windowId, targetId)
+    updateBadge(target, windowId)
+
+    return { success: true }
+
+  } catch (e) {
+    console.error('[Workspaces] Open in current window error:', e)
+    return { success: false, error: e.message }
+  } finally {
+    await setSessionState({ isSwitching: false })
+  }
+}
+
 // ── Open Workspace in New Window ────────────────────────────
 
 export async function openWorkspaceInNewWindow(targetId) {

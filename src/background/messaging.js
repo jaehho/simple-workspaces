@@ -1,6 +1,6 @@
 // ── Message Router ──────────────────────────────────────────
 
-import { switchWorkspace, createWorkspace, deleteWorkspace, updateWorkspace, saveCurrentWorkspace, assignWorkspace, openWorkspaceInNewWindow, COLORS } from './workspaces.js'
+import { switchWorkspace, createWorkspace, deleteWorkspace, updateWorkspace, saveCurrentWorkspace, assignWorkspace, openWorkspaceInNewWindow, openWorkspaceInCurrentWindow, COLORS } from './workspaces.js'
 import { getWindowMap } from './state.js'
 import { getWorkspaces } from './sync.js'
 
@@ -58,6 +58,8 @@ export function handleMessage(msg, sender) {
       return assignWorkspace(msg.workspaceId, msg.windowId)
     case 'openWorkspaceInNewWindow':
       return openWorkspaceInNewWindow(msg.workspaceId)
+    case 'openWorkspaceInCurrentWindow':
+      return openWorkspaceInCurrentWindow(msg.workspaceId, msg.windowId)
     default:
       return Promise.resolve(null)
   }

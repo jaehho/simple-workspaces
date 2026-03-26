@@ -44,11 +44,12 @@ async function renderList() {
 
   const { workspaces, windowMap, activeWorkspaceId } = state;
 
-  // Detect empty-new-tab window: unassigned, single tab, and it's about:newtab
+  // Detect empty-new-tab window: unassigned, single tab, and it's a default page
   const currentTabs = await browser.tabs.query({ windowId: currentWindowId })
+  const emptyUrls = ['about:newtab', 'about:home', 'about:blank']
   const isEmptyNewTabWindow = activeWorkspaceId === null
     && currentTabs.length === 1
-    && (!currentTabs[0].url || currentTabs[0].url === 'about:newtab')
+    && (!currentTabs[0].url || emptyUrls.includes(currentTabs[0].url))
 
   // Update subtitle based on window assignment state (D-07)
   const subtitle = document.getElementById('ws-subtitle')

@@ -44,12 +44,22 @@ async function renderList() {
 
   const { workspaces, windowMap, activeWorkspaceId } = state;
 
+  // Detect empty-new-tab window: unassigned, single tab, and it's about:newtab
+  const currentTabs = await browser.tabs.query({ windowId: currentWindowId })
+  const isEmptyNewTabWindow = activeWorkspaceId === null
+    && currentTabs.length === 1
+    && (!currentTabs[0].url || currentTabs[0].url === 'about:newtab')
+
   // Update subtitle based on window assignment state (D-07)
   const subtitle = document.getElementById('ws-subtitle')
   if (subtitle) {
-    subtitle.textContent = activeWorkspaceId === null
-      ? 'Click to open in new window'
-      : 'Ctrl+click to open in new window'
+    if (activeWorkspaceId !== null) {
+      subtitle.textContent = 'Ctrl+click to open in new window'
+    } else if (isEmptyNewTabWindow) {
+      subtitle.textContent = 'Click to switch'
+    } else {
+      subtitle.textContent = 'Click to open in new window'
+    }
   }
 
   // Build reverse lookup: workspaceId -> windowId (for detecting in-use workspaces)
@@ -147,8 +157,14 @@ async function renderList() {
       if (isInUse) {
         onFocusWindow(owningWindowId)
       } else if (activeWorkspaceId === null) {
-        // D-09: Unassigned window — open in new window (WIN-01)
-        if (!isActive) onOpenInNewWindow(ws.id)
+        // D-09: Unassigned window — reuse if empty new-tab window, else open in new window
+        if (!isActive) {
+          if (isEmptyNewTabWindow) {
+            onOpenInCurrentWindow(ws.id)
+          } else {
+            onOpenInNewWindow(ws.id)
+          }
+        }
       } else if (!isActive) {
         // D-10: Assigned window — switch in current window (existing behavior)
         onSwitch(ws.id)
@@ -200,6 +216,18 @@ async function onFocusWindow(targetWindowId) {
 
 async function onOpenInNewWindow(workspaceId) {
   await browser.runtime.sendMessage({ action: 'openWorkspaceInNewWindow', workspaceId })
+  window.close()
+}
+
+async function onOpenInCurrentWindow(workspaceId) {
+  const items = document.querySelectorAll('.workspace-item')
+  items.forEach(item => item.style.opacity = '0.5')
+
+  await browser.runtime.sendMessage({
+    action: 'openWorkspaceInCurrentWindow',
+    workspaceId,
+    windowId: currentWindowId,
+  })
   window.close()
 }
 

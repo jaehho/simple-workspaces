@@ -11,3 +11,6 @@ package-lock.json
 # Source archive (already extracted)
 simple-workspaces-source/
 simple-workspaces-source.zip
+
+# Claude Code tooling scratch (agent worktrees)
+.claude/
